@@ -6,7 +6,7 @@ Interface 2D futuriste, pensée pour mobile.
 - Météo Open-Meteo
 - Marchés Yahoo Finance
 - Ouverture de sites sur l'iPhone
-- API FastAPI compatible Render
+- API FastAPI compatible Render 
 """
 
 from __future__ import annotations
@@ -166,6 +166,7 @@ CITY_ALIASES = {
     "bordeaux": "Bordeaux",
     "lille": "Lille",
     "strasbourg": "Strasbourg",
+    "belleville": "Belleville",
 }
 
 
