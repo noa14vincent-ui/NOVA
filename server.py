@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 NOVA — backend iPhone / PWA
-Interface 2D futuriste, pensée pour mobile.
-- Conversation locale (sans clé API)
+Version 3.0
+- Conversation locale enrichie (10 réponses ou plus par catégorie)
+- Commandes d'applications/sites
+- Priorité aux liens d'applications/universal links sur iPhone
+- Fallback web si l'application n'est pas disponible
 - Météo Open-Meteo
 - Marchés Yahoo Finance
-- Ouverture de sites sur l'iPhone
-- API FastAPI compatible Render 
+- API FastAPI compatible Render
 """
 
 from __future__ import annotations
 
 import difflib
-import html
 import re
 from datetime import datetime
 from pathlib import Path
@@ -25,9 +26,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR / "static"
 
-# Palette identique à l'interface PC NOVA existante.
 BG = "#030712"
 BLUE = "#38bdf8"
 CYAN = "#67e8f9"
@@ -37,9 +36,15 @@ MUTED = "#66809a"
 PANEL = "#07111f"
 LINE = "#10253a"
 
-app = FastAPI(title="NOVA", version="2.1.0")
+app = FastAPI(title="NOVA", version="3.0.0")
 
 session_history: list[dict[str, str]] = []
+last_intent = "defaut"
+last_subject = ""
+
+# ---------------------------------------------------------------------------
+# CONVERSATION : 10+ réponses par catégorie
+# ---------------------------------------------------------------------------
 
 RESPONSES = {
     "salut": [
@@ -48,41 +53,96 @@ RESPONSES = {
         "Bonjour. Dis-moi ce que tu veux faire.",
         "Présente. On continue ?",
         "Salut. Je t'écoute.",
+        "Bonjour. Système NOVA en ligne.",
+        "Salut. Quel est le programme ?",
+        "Bonjour. Donne-moi ta prochaine commande.",
+        "Salut. Je suis connectée.",
+        "Hello. On peut commencer.",
+        "Coucou. Qu'est-ce que tu veux faire ?",
     ],
     "merci": [
         "Avec plaisir.",
         "Pas de souci.",
         "Toujours disponible.",
         "Bien reçu.",
+        "Avec plaisir, on continue.",
+        "Je t'en prie.",
+        "Service NOVA opérationnel.",
+        "Pas de problème.",
+        "C'est fait.",
+        "Toujours là.",
+        "Commande terminée.",
+        "Avec plaisir.",
     ],
     "humeur": [
         "Je t'écoute. Qu'est-ce qui te met dans cet état ?",
         "D'accord. Raconte-moi ce qui se passe.",
         "Je suis là. Qu'est-ce que tu as en tête ?",
         "On peut prendre ça étape par étape.",
+        "Tu peux m'expliquer ce qui se passe.",
+        "D'accord. Qu'est-ce qui te préoccupe ?",
+        "Je t'écoute. Commence par le point le plus important.",
+        "On peut regarder ça calmement.",
+        "Dis-moi ce qui s'est passé.",
+        "Je suis attentive. Continue.",
+        "D'accord. On va clarifier tout ça.",
+        "Raconte-moi la suite.",
     ],
     "idee": [
         "Intéressant. C'est quoi l'idée de départ ?",
         "Décris-moi ton idée comme tu la vois.",
         "On peut la transformer en plan concret. Par quoi veux-tu commencer ?",
         "Je note l'idée. Qu'est-ce qu'elle doit permettre de faire ?",
+        "Bonne base. Quel serait le fonctionnement idéal ?",
+        "Décris-moi le résultat que tu imagines.",
+        "On peut commencer par définir les fonctions principales.",
+        "Quelle partie de ton idée veux-tu construire en premier ?",
+        "D'accord. Qu'est-ce qui rendrait cette idée vraiment utile ?",
+        "On peut lui donner une structure. Quel est le cœur du concept ?",
+        "Très bien. Quelle serait la première version simple ?",
+        "Je peux t'aider à passer de l'idée au prototype.",
     ],
     "projet": [
         "D'accord. Quel est l'objectif principal du projet ?",
         "On peut le découper en petites étapes. Tu veux commencer par laquelle ?",
         "Parle-moi de l'état actuel du projet.",
         "Très bien. Quelle est la prochaine étape que tu veux réaliser ?",
+        "On peut commencer par l'architecture.",
+        "Quel est le résultat final que tu veux obtenir ?",
+        "Donne-moi les fonctions que tu veux absolument avoir.",
+        "On peut construire une première version puis l'améliorer.",
+        "Qu'est-ce qui est déjà terminé ?",
+        "Quel est le point qui te bloque actuellement ?",
+        "On peut organiser le projet en modules.",
+        "Décris-moi la version idéale du projet.",
     ],
     "probleme": [
         "On va isoler le problème. Qu'est-ce qui ne fonctionne pas exactement ?",
         "Décris-moi le blocage et ce que tu as déjà essayé.",
         "On peut chercher la cause ensemble. Qu'est-ce que tu observes ?",
         "Commence par me donner le message d'erreur ou le comportement gênant.",
+        "D'accord. À quel moment le problème apparaît-il ?",
+        "On va procéder étape par étape.",
+        "Qu'est-ce qui fonctionnait avant ?",
+        "Donne-moi le résultat attendu puis le résultat obtenu.",
+        "Je peux t'aider à isoler la cause.",
+        "D'accord. On commence par vérifier le point le plus probable.",
+        "Quel est le dernier changement que tu as fait ?",
+        "On va réduire le problème à un cas simple.",
     ],
     "question": [
         "Oui. Pose ta question.",
         "Vas-y, je t'écoute.",
         "D'accord. Quelle est ta question ?",
+        "Je suis prête. Explique-moi ce que tu cherches.",
+        "Pose-la directement.",
+        "D'accord. Donne-moi le point précis.",
+        "Je t'écoute.",
+        "Vas-y, on regarde ça.",
+        "Quelle information veux-tu obtenir ?",
+        "D'accord. Je vais regarder le sujet avec toi.",
+        "Explique-moi ce que tu veux comprendre.",
+        "On peut commencer par ta question principale.",
     ],
     "defaut": [
         "Je t'écoute.",
@@ -93,24 +153,157 @@ RESPONSES = {
         "On peut avancer étape par étape.",
         "Je note. Continue.",
         "D'accord. Et ensuite ?",
+        "Très bien. Précise-moi ce point.",
+        "Je suis prête pour la suite.",
+        "D'accord. Donne-moi le détail important.",
+        "On continue.",
     ],
 }
 
-last_intent = "defaut"
-last_subject = ""
+# ---------------------------------------------------------------------------
+# APPLICATIONS / SITES
+#
+# Sur iPhone, on privilégie les URLs HTTP(S) qui peuvent être des Universal
+# Links : si l'app est installée et que le domaine les prend en charge,
+# iOS peut ouvrir l'app ; sinon le même lien reste utilisable dans le web.
+# Apple documente ce comportement des Universal Links.
+# ---------------------------------------------------------------------------
 
-SITES = {
-    "netflix": "https://www.netflix.com/",
-    "youtube": "https://www.youtube.com/",
-    "spotify": "https://open.spotify.com/",
-    "google": "https://www.google.com/",
-    "github": "https://github.com/",
-    "discord": "https://discord.com/app",
-    "instagram": "https://www.instagram.com/",
-    "chatgpt": "https://chatgpt.com/",
-    "gmail": "https://mail.google.com/",
-    "tiktok": "https://www.tiktok.com/",
+APP_COMMANDS: dict[str, dict[str, Any]] = {
+    "netflix": {
+        "aliases": ["netflix"],
+        "url": "https://www.netflix.com/",
+        "label": "Netflix",
+    },
+    "youtube": {
+        "aliases": ["youtube", "youtube music"],
+        "url": "https://www.youtube.com/",
+        "label": "YouTube",
+    },
+    "spotify": {
+        "aliases": ["spotify"],
+        "url": "https://open.spotify.com/",
+        "label": "Spotify",
+    },
+    "discord": {
+        "aliases": ["discord"],
+        "url": "https://discord.com/app",
+        "label": "Discord",
+    },
+    "instagram": {
+        "aliases": ["instagram", "insta"],
+        "url": "https://www.instagram.com/",
+        "label": "Instagram",
+    },
+    "tiktok": {
+        "aliases": ["tiktok", "tik tok"],
+        "url": "https://www.tiktok.com/",
+        "label": "TikTok",
+    },
+    "chatgpt": {
+        "aliases": ["chatgpt", "chat gpt"],
+        "url": "https://chatgpt.com/",
+        "label": "ChatGPT",
+    },
+    "gmail": {
+        "aliases": ["gmail", "mail"],
+        "url": "https://mail.google.com/",
+        "label": "Gmail",
+    },
+    "google": {
+        "aliases": ["google"],
+        "url": "https://www.google.com/",
+        "label": "Google",
+    },
+    "github": {
+        "aliases": ["github", "git hub"],
+        "url": "https://github.com/",
+        "label": "GitHub",
+    },
+    "brawl stars": {
+        "aliases": ["brawl stars", "brawlstar", "brawl star", "brawl"],
+        "url": "https://supercell.com/en/games/brawlstars/",
+        "label": "Brawl Stars",
+    },
+    "clash royale": {
+        "aliases": ["clash royale", "clash royal"],
+        "url": "https://supercell.com/en/games/clashroyale/",
+        "label": "Clash Royale",
+    },
+    "clash of clans": {
+        "aliases": ["clash of clans", "clash"],
+        "url": "https://supercell.com/en/games/clashofclans/",
+        "label": "Clash of Clans",
+    },
+    "roblox": {
+        "aliases": ["roblox"],
+        "url": "https://www.roblox.com/",
+        "label": "Roblox",
+    },
+    "minecraft": {
+        "aliases": ["minecraft", "minecraft bedrock", "minecraft java"],
+        "url": "https://www.minecraft.net/",
+        "label": "Minecraft",
+    },
+    "steam": {
+        "aliases": ["steam"],
+        "url": "https://store.steampowered.com/",
+        "label": "Steam",
+    },
+    "twitch": {
+        "aliases": ["twitch"],
+        "url": "https://www.twitch.tv/",
+        "label": "Twitch",
+    },
+    "prime video": {
+        "aliases": ["prime video", "amazon prime", "prime"],
+        "url": "https://www.primevideo.com/",
+        "label": "Prime Video",
+    },
+    "disney plus": {
+        "aliases": ["disney plus", "disney+", "disney"],
+        "url": "https://www.disneyplus.com/",
+        "label": "Disney+",
+    },
+    "max": {
+        "aliases": ["max", "hbo max"],
+        "url": "https://www.max.com/",
+        "label": "Max",
+    },
+    "google maps": {
+        "aliases": ["google maps", "maps"],
+        "url": "https://www.google.com/maps/",
+        "label": "Google Maps",
+    },
+    "wikipedia": {
+        "aliases": ["wikipedia", "wiki"],
+        "url": "https://www.wikipedia.org/",
+        "label": "Wikipedia",
+    },
+    "reddit": {
+        "aliases": ["reddit"],
+        "url": "https://www.reddit.com/",
+        "label": "Reddit",
+    },
+    "linkedin": {
+        "aliases": ["linkedin", "linked in"],
+        "url": "https://www.linkedin.com/",
+        "label": "LinkedIn",
+    },
 }
+
+# Alias "site-only" conservé pour compatibilité avec d'anciens appels.
+SITES = {k: v["url"] for k, v in APP_COMMANDS.items()}
+
+OPEN_WORDS = (
+    "ouvre", "ouvrir", "lance", "lancer", "démarre", "demarre",
+    "démarrer", "demarrer", "va sur", "aller sur", "mets", "met",
+    "accède", "accede", "affiche"
+)
+
+# ---------------------------------------------------------------------------
+# MARCHÉS / MÉTÉO
+# ---------------------------------------------------------------------------
 
 MARKETS = {
     "cac 40": {"symbol": "^FCHI", "label": "CAC 40"},
@@ -133,27 +326,13 @@ MARKETS = {
 }
 
 WEATHER_CODES = {
-    0: "Ciel dégagé",
-    1: "Peu nuageux",
-    2: "Partiellement nuageux",
-    3: "Couvert",
-    45: "Brouillard",
-    48: "Brouillard givrant",
-    51: "Bruine légère",
-    53: "Bruine",
-    55: "Bruine forte",
-    61: "Pluie légère",
-    63: "Pluie",
-    65: "Pluie forte",
-    71: "Neige légère",
-    73: "Neige",
-    75: "Neige forte",
-    80: "Averses légères",
-    81: "Averses",
-    82: "Fortes averses",
-    95: "Orage",
-    96: "Orage avec grêle",
-    99: "Orage fort",
+    0: "Ciel dégagé", 1: "Peu nuageux", 2: "Partiellement nuageux",
+    3: "Couvert", 45: "Brouillard", 48: "Brouillard givrant",
+    51: "Bruine légère", 53: "Bruine", 55: "Bruine forte",
+    61: "Pluie légère", 63: "Pluie", 65: "Pluie forte",
+    71: "Neige légère", 73: "Neige", 75: "Neige forte",
+    80: "Averses légères", 81: "Averses", 82: "Fortes averses",
+    95: "Orage", 96: "Orage avec grêle", 99: "Orage fort",
 }
 
 CITY_ALIASES = {
@@ -167,605 +346,6 @@ CITY_ALIASES = {
     "lille": "Lille",
     "strasbourg": "Strasbourg",
     "belleville": "Belleville",
-    "abbeville': 'Abbeville',
-    'acheres': 'Achères',
-    'agde': 'Agde',
-    'agen': 'Agen',
-    'aigueze': 'Aiguèze',
-    'ainhoa': 'Ainhoa',
-    'aix en provence': 'Aix-en-Provence',
-    'aix les bains': 'Aix-les-Bains',
-    'ajaccio': 'Ajaccio',
-    'albi': 'Albi',
-    'alencon': 'Alençon',
-    'ales': 'Alès',
-    'alfortville': 'Alfortville',
-    'allauch': 'Allauch',
-    'amiens': 'Amiens',
-    'angers': 'Angers',
-    'angles sur l anglin': "Angles-sur-l'Anglin",
-    'anglet': 'Anglet',
-    'angouleme': 'Angoulême',
-    'annecy': 'Annecy',
-    "Régnié-Durrette": "Régnié-Durrette",
-    'annemasse': 'Annemasse',
-    'antibes': 'Antibes',
-    'antony': 'Antony',
-    'arcueil': 'Arcueil',
-    'argenteuil': 'Argenteuil',
-    'arles': 'Arles',
-    'armentieres': 'Armentières',
-    'arras': 'Arras',
-    'asnieres sur seine': 'Asnières-sur-Seine',
-    'athis mons': 'Athis-Mons',
-    'aubagne': 'Aubagne',
-    'aubervilliers': 'Aubervilliers',
-    'auch': 'Auch',
-    'aulnay sous bois': 'Aulnay-sous-Bois',
-    'aurillac': 'Aurillac',
-    'autoire': 'Autoire',
-    'auxerre': 'Auxerre',
-    'avignon': 'Avignon',
-    'bagneux': 'Bagneux',
-    'bagnolet': 'Bagnolet',
-    'baie mahault': 'Baie-Mahault',
-    'balazuc': 'Balazuc',
-    'barfleur': 'Barfleur',
-    'bastia': 'Bastia',
-    'baume les dames': 'Baume-les-Dames',
-    'baume les messieurs': 'Baume-les-Messieurs',
-    'bayonne': 'Bayonne',
-    'beaune': 'Beaune',
-    'beaupreau en mauges': 'Beaupréau-en-Mauges',
-    'beauvais': 'Beauvais',
-    'begles': 'Bègles',
-    'belcastel': 'Belcastel',
-    'belfort': 'Belfort',
-    'bergerac': 'Bergerac',
-    'besancon': 'Besançon',
-    'bethune': 'Béthune',
-    'beuvron en auge': 'Beuvron-en-Auge',
-    'beynac et cazenac': 'Beynac-et-Cazenac',
-    'beziers': 'Béziers',
-    'bezons': 'Bezons',
-    'biarritz': 'Biarritz',
-    'blagnac': 'Blagnac',
-    'blois': 'Blois',
-    'bobigny': 'Bobigny',
-    'bois colombes': 'Bois-Colombes',
-    'bondy': 'Bondy',
-    'bonnieux': 'Bonnieux',
-    'bordeaux': 'Bordeaux',
-    'bouguenais': 'Bouguenais',
-    'boulogne billancourt': 'Boulogne-Billancourt',
-    'boulogne sur mer': 'Boulogne-sur-Mer',
-    'bourg en bresse': 'Bourg-en-Bresse',
-    'bourg la reine': 'Bourg-la-Reine',
-    'bourges': 'Bourges',
-    'bourgoin jallieu': 'Bourgoin-Jallieu',
-    'brest': 'Brest',
-    'bretigny sur orge': 'Brétigny-sur-Orge',
-    'brive la gaillarde': 'Brive-la-Gaillarde',
-    'bron': 'Bron',
-    'brousse le chateau': 'Brousse-le-Château',
-    'bruay la buissiere': 'Bruay-la-Buissière',
-    'bruges': 'Bruges',
-    'bruniquel': 'Bruniquel',
-    'brunoy': 'Brunoy',
-    'bussy saint georges': 'Bussy-Saint-Georges',
-    'cachan': 'Cachan',
-    'caen': 'Caen',
-    'cagnes sur mer': 'Cagnes-sur-Mer',
-    'cahors': 'Cahors',
-    'calais': 'Calais',
-    'caluire et cuire': 'Caluire-et-Cuire',
-    'cambrai': 'Cambrai',
-    'camon': 'Camon',
-    'candes saint martin': 'Candes-Saint-Martin',
-    'cannes': 'Cannes',
-    'carcassonne': 'Carcassonne',
-    'carennac': 'Carennac',
-    'carpentras': 'Carpentras',
-    'carquefou': 'Carquefou',
-    'carrieres sous poissy': 'Carrières-sous-Poissy',
-    'castelmoron d albret': "Castelmoron-d'Albret",
-    'castelnau le lez': 'Castelnau-le-Lez',
-    'castelnaud la chapelle': 'Castelnaud-la-Chapelle',
-    'castres': 'Castres',
-    'cavaillon': 'Cavaillon',
-    'cayenne': 'Cayenne',
-    'cenon': 'Cenon',
-    'cergy': 'Cergy',
-    'challans': 'Challans',
-    'chalon sur saone': 'Chalon-sur-Saône',
-    'chalons en champagne': 'Châlons-en-Champagne',
-    'chambery': 'Chambéry',
-    'champigny sur marne': 'Champigny-sur-Marne',
-    'champs sur marne': 'Champs-sur-Marne',
-    'charenton le pont': 'Charenton-le-Pont',
-    'charleville mezieres': 'Charleville-Mézières',
-    'charroux': 'Charroux',
-    'chartres': 'Chartres',
-    'chateau chalon': 'Château-Chalon',
-    'chateauroux': 'Châteauroux',
-    'chatellerault': 'Châtellerault',
-    'chatenay malabry': 'Châtenay-Malabry',
-    'chatillon': 'Châtillon',
-    'chatou': 'Chatou',
-    'chaumont': 'Chaumont',
-    'chaville': 'Chaville',
-    'chelles': 'Chelles',
-    'chemille en anjou': 'Chemillé-en-Anjou',
-    'cherbourg en cotentin': 'Cherbourg-en-Cotentin',
-    'chilly mazarin': 'Chilly-Mazarin',
-    'choisy le roi': 'Choisy-le-Roi',
-    'cholet': 'Cholet',
-    'clamart': 'Clamart',
-    'clermont ferrand': 'Clermont-Ferrand',
-    'clichy': 'Clichy',
-    'clichy sous bois': 'Clichy-sous-Bois',
-    'coaraze': 'Coaraze',
-    'collonges la rouge': 'Collonges-la-Rouge',
-    'colmar': 'Colmar',
-    'colombes': 'Colombes',
-    'colomiers': 'Colomiers',
-    'combs la ville': 'Combs-la-Ville',
-    'compiegne': 'Compiègne',
-    'concarneau': 'Concarneau',
-    'conflans sainte honorine': 'Conflans-Sainte-Honorine',
-    'conques': 'Conques',
-    'corbeil essonnes': 'Corbeil-Essonnes',
-    'cordes sur ciel': 'Cordes-sur-Ciel',
-    'cormeilles en parisis': 'Cormeilles-en-Parisis',
-    'coudekerque branche': 'Coudekerque-Branche',
-    'coueron': 'Couëron',
-    'courbevoie': 'Courbevoie',
-    'creil': 'Creil',
-    'creteil': 'Créteil',
-    'crissay sur manse': 'Crissay-sur-Manse',
-    'croix': 'Croix',
-    'cugnaux': 'Cugnaux',
-    'curemonte': 'Curemonte',
-    'dammarie les lys': 'Dammarie-les-Lys',
-    'dax': 'Dax',
-    'decines charpieu': 'Décines-Charpieu',
-    'denain': 'Denain',
-    'deuil la barre': 'Deuil-la-Barre',
-    'dieppe': 'Dieppe',
-    'dijon': 'Dijon',
-    'dole': 'Dole',
-    'domme': 'Domme',
-    'douai': 'Douai',
-    'draguignan': 'Draguignan',
-    'drancy': 'Drancy',
-    'draveil': 'Draveil',
-    'dreux': 'Dreux',
-    'dumbea': 'Dumbéa',
-    'dunkerque': 'Dunkerque',
-    'eaubonne': 'Eaubonne',
-    'echirolles': 'Échirolles',
-    'eguisheim': 'Eguisheim',
-    'elancourt': 'Élancourt',
-    'epernay': 'Épernay',
-    'epinal': 'Épinal',
-    'epinay sur seine': 'Épinay-sur-Seine',
-    'ermont': 'Ermont',
-    'espelette': 'Espelette',
-    'estaing': 'Estaing',
-    'etampes': 'Étampes',
-    'etretat': 'Étretat',
-    'evreux': 'Évreux',
-    'evry courcouronnes': 'Évry-Courcouronnes',
-    'eysines': 'Eysines',
-    'eze': 'Èze',
-    'faʻaʻā': 'Faʻaʻā',
-    'flavigny sur ozerain': 'Flavigny-sur-Ozerain',
-    'fleury les aubrais': 'Fleury-les-Aubrais',
-    'fontaine': 'Fontaine',
-    'fontenay aux roses': 'Fontenay-aux-Roses',
-    'fontenay sous bois': 'Fontenay-sous-Bois',
-    'forbach': 'Forbach',
-    'fort de france': 'Fort-de-France',
-    'fougeres': 'Fougères',
-    'franconville': 'Franconville',
-    'frejus': 'Fréjus',
-    'fresnes': 'Fresnes',
-    'frontignan': 'Frontignan',
-    'gagny': 'Gagny',
-    'gap': 'Gap',
-    'gardanne': 'Gardanne',
-    'garges les gonesse': 'Garges-lès-Gonesse',
-    'gennevilliers': 'Gennevilliers',
-    'gerberoy': 'Gerberoy',
-    'gif sur yvette': 'Gif-sur-Yvette',
-    'givors': 'Givors',
-    'gonesse': 'Gonesse',
-    'gordes': 'Gordes',
-    'gourdon': 'Gourdon',
-    'goussainville': 'Goussainville',
-    'gradignan': 'Gradignan',
-    'grande synthe': 'Grande-Synthe',
-    'grasse': 'Grasse',
-    'grenoble': 'Grenoble',
-    'grigny': 'Grigny',
-    'gujan mestras': 'Gujan-Mestras',
-    'guyancourt': 'Guyancourt',
-    'haguenau': 'Haguenau',
-    'halluin': 'Halluin',
-    'hazebrouck': 'Hazebrouck',
-    'henin beaumont': 'Hénin-Beaumont',
-    'herblay sur seine': 'Herblay-sur-Seine',
-    'herouville saint clair': 'Hérouville-Saint-Clair',
-    'houilles': 'Houilles',
-    'hunawihr': 'Hunawihr',
-    'hunspach': 'Hunspach',
-    'hyeres': 'Hyères',
-    'illkirch graffenstaden': 'Illkirch-Graffenstaden',
-    'issy les moulineaux': 'Issy-les-Moulineaux',
-    'istres': 'Istres',
-    'ivry sur seine': 'Ivry-sur-Seine',
-    'joinville le pont': 'Joinville-le-Pont',
-    'joue les tours': 'Joué-lès-Tours',
-    'kaysersberg': 'Kaysersberg',
-    'kaysersberg vignoble': 'Kaysersberg-Vignoble',
-    'koungou': 'Koungou',
-    'kourou': 'Kourou',
-    'l haÿ les roses': "L'Haÿ-les-Roses",
-    'l isle sur la sorgue': "L'Isle-sur-la-Sorgue",
-    'la celle saint cloud': 'La Celle-Saint-Cloud',
-    'la chapelle sur erdre': 'La Chapelle-sur-Erdre',
-    'la ciotat': 'La Ciotat',
-    'la courneuve': 'La Courneuve',
-    'la garde': 'La Garde',
-    'la garenne colombes': 'La Garenne-Colombes',
-    'la madeleine': 'La Madeleine',
-    'la possession': 'La Possession',
-    'la roche guyon': 'La Roche-Guyon',
-    'la roche sur yon': 'La Roche-sur-Yon',
-    'la rochelle': 'La Rochelle',
-    'la roque gageac': 'La Roque-Gageac',
-    'la seyne sur mer': 'La Seyne-sur-Mer',
-    'la teste de buch': 'La Teste-de-Buch',
-    'la valette du var': 'La Valette-du-Var',
-    'lacoste': 'Lacoste',
-    'lagny sur marne': 'Lagny-sur-Marne',
-    'lagrasse': 'Lagrasse',
-    'lambersart': 'Lambersart',
-    'lanester': 'Lanester',
-    'lannion': 'Lannion',
-    'laon': 'Laon',
-    'laval': 'Laval',
-    'lavardin': 'Lavardin',
-    'le blanc mesnil': 'Le Blanc-Mesnil',
-    'le bouscat': 'Le Bouscat',
-    'le cannet': 'Le Cannet',
-    'le chesnay rocquencourt': 'Le Chesnay-Rocquencourt',
-    'le creusot': 'Le Creusot',
-    'le gosier': 'Le Gosier',
-    'le grand quevilly': 'Le Grand-Quevilly',
-    'le havre': 'Le Havre',
-    'le kremlin bicetre': 'Le Kremlin-Bicêtre',
-    'le lamentin': 'Le Lamentin',
-    'le mans': 'Le Mans',
-    'le mont dore': 'Le Mont-Dore',
-    'le moule': 'Le Moule',
-    'le perreux sur marne': 'Le Perreux-sur-Marne',
-    'le petit quevilly': 'Le Petit-Quevilly',
-    'le plessis robinson': 'Le Plessis-Robinson',
-    'le plessis trevise': 'Le Plessis-Trévise',
-    'le port': 'Le Port',
-    'le robert': 'Le Robert',
-    'le tampon': 'Le Tampon',
-    'lens': 'Lens',
-    'les abymes': 'Les Abymes',
-    'les baux de provence': 'Les Baux-de-Provence',
-    'les lilas': 'Les Lilas',
-    'les mureaux': 'Les Mureaux',
-    'les pavillons sous bois': 'Les Pavillons-sous-Bois',
-    'les pennes mirabeau': 'Les Pennes-Mirabeau',
-    'les sables d olonne': "Les Sables-d'Olonne",
-    'les ulis': 'Les Ulis',
-    'levallois perret': 'Levallois-Perret',
-    'libourne': 'Libourne',
-    'lievin': 'Liévin',
-    'lille': 'Lille',
-    'limeil brevannes': 'Limeil-Brévannes',
-    'limeuil': 'Limeuil',
-    'limoges': 'Limoges',
-    'lingolsheim': 'Lingolsheim',
-    'livry gargan': 'Livry-Gargan',
-    'locronan': 'Locronan',
-    'longjumeau': 'Longjumeau',
-    'loos': 'Loos',
-    'lorient': 'Lorient',
-    'lormont': 'Lormont',
-    'loubressac': 'Loubressac',
-    'lourmarin': 'Lourmarin',
-    'lunel': 'Lunel',
-    'lyon': 'Lyon',
-    'macon': 'Mâcon',
-    'maisons alfort': 'Maisons-Alfort',
-    'maisons laffitte': 'Maisons-Laffitte',
-    'malakoff': 'Malakoff',
-    'mamoudzou': 'Mamoudzou',
-    'mandelieu la napoule': 'Mandelieu-la-Napoule',
-    'manosque': 'Manosque',
-    'mantes la jolie': 'Mantes-la-Jolie',
-    'mantes la ville': 'Mantes-la-Ville',
-    'marcq en barœul': 'Marcq-en-Barœul',
-    'marignane': 'Marignane',
-    'marseille': 'Marseille',
-    'martel': 'Martel',
-    'martigues': 'Martigues',
-    'massy': 'Massy',
-    'matoury': 'Matoury',
-    'maubeuge': 'Maubeuge',
-    'maurepas': 'Maurepas',
-    'meaux': 'Meaux',
-    'melun': 'Melun',
-    'menerbes': 'Ménerbes',
-    'menton': 'Menton',
-    'merignac': 'Mérignac',
-    'metz': 'Metz',
-    'meudon': 'Meudon',
-    'meyzieu': 'Meyzieu',
-    'millau': 'Millau',
-    'minerve': 'Minerve',
-    'miramas': 'Miramas',
-    'mirepoix': 'Mirepoix',
-    'mitry mory': 'Mitry-Mory',
-    'moncontour': 'Moncontour',
-    'monflanquin': 'Monflanquin',
-    'monpazier': 'Monpazier',
-    'mons en barœul': 'Mons-en-Barœul',
-    'mont de marsan': 'Mont-de-Marsan',
-    'mont saint aignan': 'Mont-Saint-Aignan',
-    'montaigu vendee': 'Montaigu-Vendée',
-    'montauban': 'Montauban',
-    'montbeliard': 'Montbéliard',
-    'montelimar': 'Montélimar',
-    'montereau fault yonne': 'Montereau-Fault-Yonne',
-    'montfermeil': 'Montfermeil',
-    'montgeron': 'Montgeron',
-    'montigny le bretonneux': 'Montigny-le-Bretonneux',
-    'montigny les cormeilles': 'Montigny-lès-Cormeilles',
-    'montigny les metz': 'Montigny-lès-Metz',
-    'montlucon': 'Montluçon',
-    'montmorency': 'Montmorency',
-    'montpellier': 'Montpellier',
-    'montresor': 'Montrésor',
-    'montreuil': 'Montreuil',
-    'montrouge': 'Montrouge',
-    'montsoreau': 'Montsoreau',
-    'morsang sur orge': 'Morsang-sur-Orge',
-    'moustiers sainte marie': 'Moustiers-Sainte-Marie',
-    'mulhouse': 'Mulhouse',
-    'muret': 'Muret',
-    'najac': 'Najac',
-    'nancy': 'Nancy',
-    'nanterre': 'Nanterre',
-    'nantes': 'Nantes',
-    'narbonne': 'Narbonne',
-    'neuilly plaisance': 'Neuilly-Plaisance',
-    'neuilly sur marne': 'Neuilly-sur-Marne',
-    'neuilly sur seine': 'Neuilly-sur-Seine',
-    'nevers': 'Nevers',
-    'nice': 'Nice',
-    'niedermorschwihr': 'Niedermorschwihr',
-    'nimes': 'Nîmes',
-    'niort': 'Niort',
-    'nogent sur marne': 'Nogent-sur-Marne',
-    'nogent sur oise': 'Nogent-sur-Oise',
-    'noisy le grand': 'Noisy-le-Grand',
-    'noisy le sec': 'Noisy-le-Sec',
-    'noumea': 'Nouméa',
-    'noyers sur serein': 'Noyers-sur-Serein',
-    'olivet': 'Olivet',
-    'oppede': 'Oppède',
-    'orange': 'Orange',
-    'orleans': 'Orléans',
-    'orly': 'Orly',
-    'orvault': 'Orvault',
-    'oullins pierre benite': 'Oullins-Pierre-Bénite',
-    'oyonnax': 'Oyonnax',
-    'ozoir la ferriere': 'Ozoir-la-Ferrière',
-    'paita': 'Païta',
-    'palaiseau': 'Palaiseau',
-    'pantin': 'Pantin',
-    'papeete': 'Papeete',
-    'paris': 'Paris',
-    'pau': 'Pau',
-    'penne': 'Penne',
-    'penne d agenais': "Penne-d'Agenais",
-    'perigueux': 'Périgueux',
-    'perouges': 'Pérouges',
-    'perpignan': 'Perpignan',
-    'pessac': 'Pessac',
-    'petit bourg': 'Petit-Bourg',
-    'peyre': 'Peyre',
-    'plaisance du touch': 'Plaisance-du-Touch',
-    'plaisir': 'Plaisir',
-    'poissy': 'Poissy',
-    'poitiers': 'Poitiers',
-    'pontault combault': 'Pontault-Combault',
-    'pontoise': 'Pontoise',
-    'pujols': 'Pujols',
-    'punaʻauia': 'Punaʻauia',
-    'puteaux': 'Puteaux',
-    'puycelsi': 'Puycelsi',
-    'quimper': 'Quimper',
-    'rambouillet': 'Rambouillet',
-    'reims': 'Reims',
-    'remire montjoly': 'Remire-Montjoly',
-    'rennes': 'Rennes',
-    'reze': 'Rezé',
-    'ribeauville': 'Ribeauvillé',
-    'rillieux la pape': 'Rillieux-la-Pape',
-    'riquewihr': 'Riquewihr',
-    'ris orangis': 'Ris-Orangis',
-    'roanne': 'Roanne',
-    'rocamadour': 'Rocamadour',
-    'rochefort': 'Rochefort',
-    'rochefort en terre': 'Rochefort-en-Terre',
-    'rodez': 'Rodez',
-    'roissy en brie': 'Roissy-en-Brie',
-    'romainville': 'Romainville',
-    'romans sur isere': 'Romans-sur-Isère',
-    'rosny sous bois': 'Rosny-sous-Bois',
-    'roubaix': 'Roubaix',
-    'rouen': 'Rouen',
-    'roussillon': 'Roussillon',
-    'rueil malmaison': 'Rueil-Malmaison',
-    'saint amand de coly': 'Saint-Amand-de-Coly',
-    'saint andre': 'Saint-André',
-    'saint benoit': 'Saint-Benoît',
-    'saint bertrand de comminges': 'Saint-Bertrand-de-Comminges',
-    'saint brieuc': 'Saint-Brieuc',
-    'saint chamond': 'Saint-Chamond',
-    'saint cirq lapopie': 'Saint-Cirq-Lapopie',
-    'saint cloud': 'Saint-Cloud',
-    'saint cyr l ecole': "Saint-Cyr-l'École",
-    'saint denis': 'Saint-Denis',
-    'saint dizier': 'Saint-Dizier',
-    'saint etienne': 'Saint-Étienne',
-    'saint etienne du rouvray': 'Saint-Étienne-du-Rouvray',
-    'saint genis laval': 'Saint-Genis-Laval',
-    'saint germain en laye': 'Saint-Germain-en-Laye',
-    'saint gratien': 'Saint-Gratien',
-    'saint herblain': 'Saint-Herblain',
-    'saint jean de braye': 'Saint-Jean-de-Braye',
-    'saint jean de cole': 'Saint-Jean-de-Côle',
-    'saint jean pied de port': 'Saint-Jean-Pied-de-Port',
-    'saint joseph': 'Saint-Joseph',
-    'saint laurent du maroni': 'Saint-Laurent-du-Maroni',
-    'saint laurent du var': 'Saint-Laurent-du-Var',
-    'saint leon sur vezere': 'Saint-Léon-sur-Vézère',
-    'saint leu': 'Saint-Leu',
-    'saint louis': 'Saint-Louis',
-    'saint malo': 'Saint-Malo',
-    'saint mande': 'Saint-Mandé',
-    'saint martin': 'Saint-Martin',
-    'saint martin d heres': "Saint-Martin-d'Hères",
-    'saint maur des fosses': 'Saint-Maur-des-Fossés',
-    'saint medard en jalles': 'Saint-Médard-en-Jalles',
-    'saint michel sur orge': 'Saint-Michel-sur-Orge',
-    'saint nazaire': 'Saint-Nazaire',
-    'saint ouen l aumone': "Saint-Ouen-l'Aumône",
-    'saint ouen sur seine': 'Saint-Ouen-sur-Seine',
-    'saint paul': 'Saint-Paul',
-    'saint paul de vence': 'Saint-Paul-de-Vence',
-    'saint pierre': 'Saint-Pierre',
-    'saint priest': 'Saint-Priest',
-    'saint quentin': 'Saint-Quentin',
-    'saint raphael': 'Saint-Raphaël',
-    'saint sebastien sur loire': 'Saint-Sébastien-sur-Loire',
-    'saint suliac': 'Saint-Suliac',
-    'sainte anne': 'Sainte-Anne',
-    'sainte enimie': 'Sainte-Enimie',
-    'sainte foy les lyon': 'Sainte-Foy-lès-Lyon',
-    'sainte genevieve des bois': 'Sainte-Geneviève-des-Bois',
-    'sainte marie': 'Sainte-Marie',
-    'sainte suzanne': 'Sainte-Suzanne',
-    'saintes': 'Saintes',
-    'salers': 'Salers',
-    'salon de provence': 'Salon-de-Provence',
-    'sannois': 'Sannois',
-    'sarcelles': 'Sarcelles',
-    'sare': 'Sare',
-    'sarreguemines': 'Sarreguemines',
-    'sartrouville': 'Sartrouville',
-    'saumur': 'Saumur',
-    'sauveterre de rouergue': 'Sauveterre-de-Rouergue',
-    'savigny le temple': 'Savigny-le-Temple',
-    'savigny sur orge': 'Savigny-sur-Orge',
-    'sceaux': 'Sceaux',
-    'schiltigheim': 'Schiltigheim',
-    'segur le chateau': 'Ségur-le-Château',
-    'seguret': 'Séguret',
-    'semur en auxois': 'Semur-en-Auxois',
-    'semur en brionnais': 'Semur-en-Brionnais',
-    'sens': 'Sens',
-    'sete': 'Sète',
-    'sevran': 'Sevran',
-    'sevremoine': 'Sèvremoine',
-    'sevres': 'Sèvres',
-    'six fours les plages': 'Six-Fours-les-Plages',
-    'soissons': 'Soissons',
-    'sospel': 'Sospel',
-    'sotteville les rouen': 'Sotteville-lès-Rouen',
-    'stains': 'Stains',
-    'strasbourg': 'Strasbourg',
-    'sucy en brie': 'Sucy-en-Brie',
-    'suresnes': 'Suresnes',
-    'talence': 'Talence',
-    'talloires': 'Talloires',
-    'tarbes': 'Tarbes',
-    'tassin la demi lune': 'Tassin-la-Demi-Lune',
-    'taverny': 'Taverny',
-    'thiais': 'Thiais',
-    'thionville': 'Thionville',
-    'thonon les bains': 'Thonon-les-Bains',
-    'torcy': 'Torcy',
-    'toulon': 'Toulon',
-    'toulouse': 'Toulouse',
-    'tourcoing': 'Tourcoing',
-    'tournefeuille': 'Tournefeuille',
-    'tournemire': 'Tournemire',
-    'tournon d agenais': "Tournon-d'Agenais",
-    'tourrettes sur loup': 'Tourrettes-sur-Loup',
-    'tours': 'Tours',
-    'trappes': 'Trappes',
-    'tremblay en france': 'Tremblay-en-France',
-    'troyes': 'Troyes',
-    'turckheim': 'Turckheim',
-    'turenne': 'Turenne',
-    'valence': 'Valence',
-    'valenciennes': 'Valenciennes',
-    'vallauris': 'Vallauris',
-    'vandœuvre les nancy': 'Vandœuvre-lès-Nancy',
-    'vannes': 'Vannes',
-    'vanves': 'Vanves',
-    'vaulx en velin': 'Vaulx-en-Velin',
-    'velizy villacoublay': 'Vélizy-Villacoublay',
-    'venasque': 'Venasque',
-    'venissieux': 'Vénissieux',
-    'vernon': 'Vernon',
-    'versailles': 'Versailles',
-    'vertou': 'Vertou',
-    'vetheuil': 'Vétheuil',
-    'veules les roses': 'Veules-les-Roses',
-    'vezelay': 'Vézelay',
-    'vichy': 'Vichy',
-    'vienne': 'Vienne',
-    'vierzon': 'Vierzon',
-    'vigneux sur seine': 'Vigneux-sur-Seine',
-    'villefranche sur saone': 'Villefranche-sur-Saône',
-    'villejuif': 'Villejuif',
-    'villemomble': 'Villemomble',
-    'villenave d ornon': "Villenave-d'Ornon",
-    'villeneuve d ascq': "Villeneuve-d'Ascq",
-    'villeneuve la garenne': 'Villeneuve-la-Garenne',
-    'villeneuve le roi': 'Villeneuve-le-Roi',
-    'villeneuve saint georges': 'Villeneuve-Saint-Georges',
-    'villeneuve sur lot': 'Villeneuve-sur-Lot',
-    'villeparisis': 'Villeparisis',
-    'villepinte': 'Villepinte',
-    'villereal': 'Villeréal',
-    'villeurbanne': 'Villeurbanne',
-    'villiers le bel': 'Villiers-le-Bel',
-    'villiers sur marne': 'Villiers-sur-Marne',
-    'vincennes': 'Vincennes',
-    'viry chatillon': 'Viry-Châtillon',
-    'vitrolles': 'Vitrolles',
-    'vitry sur seine': 'Vitry-sur-Seine',
-    'vogue': 'Vogüé',
-    'voiron': 'Voiron',
-    'wasquehal': 'Wasquehal',
-    'wattrelos': 'Wattrelos',
-    'yerres': 'Yerres',
-    'yerville': 'Yerville',
-    'yevre le chatel': 'Yèvre-le-Châtel',
-    'yvoire': 'Yvoire',
 }
 
 
@@ -781,15 +361,15 @@ def clean_text(text: str) -> str:
 
 def detect_intent(text: str) -> str:
     t = text.lower()
-    if re.search(r"\b(salut|bonjour|hello|yo|coucou)\b", t):
+    if re.search(r"\b(salut|bonjour|hello|yo|coucou|bonsoir)\b", t):
         return "salut"
-    if re.search(r"\b(merci|thanks)\b", t):
+    if re.search(r"\b(merci|thanks|super|parfait)\b", t):
         return "merci"
     if re.search(r"\b(idée|idee|j'ai pensé|j ai pense|imagine|concept)\b", t):
         return "idee"
-    if re.search(r"\b(projet|développer|developper|programme|application|app)\b", t):
+    if re.search(r"\b(projet|développer|developper|programme|application|app|coder|code)\b", t):
         return "projet"
-    if re.search(r"\b(problème|probleme|bug|erreur|bloqué|bloque|marche pas|ça ne marche)\b", t):
+    if re.search(r"\b(problème|probleme|bug|erreur|bloqué|bloque|marche pas|ça ne marche|ca ne marche)\b", t):
         return "probleme"
     if re.search(r"\b(comment|pourquoi|quelle|quel|qu'est-ce|question|est-ce que)\b", t):
         return "question"
@@ -800,17 +380,24 @@ def detect_intent(text: str) -> str:
 
 def subject_from_text(text: str) -> str:
     t = clean_text(text)
-    t = re.sub(r"^(j'ai|j ai|je veux|je voudrais|mon|ma|mes|c'est|c est)\s+", "", t, flags=re.I)
+    t = re.sub(
+        r"^(j'ai|j ai|je veux|je voudrais|mon|ma|mes|c'est|c est)\s+",
+        "",
+        t,
+        flags=re.I,
+    )
     words = t.split()
     return " ".join(words[:9]).strip(" ,.!?")
 
 
 def conversation_reply(text: str) -> str:
     global last_intent, last_subject
+
     intent = detect_intent(text)
     subject = subject_from_text(text)
+    low = text.lower().strip()
 
-    if re.fullmatch(r"(oui|ouais|yes|d'accord|ok|okay)\W*", text.lower()):
+    if re.fullmatch(r"(oui|ouais|yes|d'accord|ok|okay|exact)\W*", low):
         reply = {
             "projet": "Parfait. Donne-moi la prochaine étape et on la découpe ensemble.",
             "idee": "Parfait. On peut maintenant préciser le fonctionnement.",
@@ -818,101 +405,167 @@ def conversation_reply(text: str) -> str:
             "question": "D'accord. On continue sur ce point.",
             "humeur": "D'accord. Raconte-moi la suite.",
         }.get(last_intent, "D'accord. Continue.")
-    elif re.fullmatch(r"(non|nan|pas vraiment)\W*", text.lower()):
+    elif re.fullmatch(r"(non|nan|pas vraiment)\W*", low):
         reply = "D'accord. On change d'angle. Qu'est-ce que tu préfères faire ?"
-    elif re.search(r"\b(et après|ensuite)\b", text.lower()):
+    elif re.search(r"\b(et après|ensuite|et maintenant)\b", low):
         reply = "Ensuite, on valide le résultat puis on passe à l'étape suivante."
-    elif re.search(r"\b(pourquoi)\b", text.lower()) and last_subject:
+    elif re.search(r"\bpourquoi\b", low) and last_subject:
         reply = f"Pour le point « {last_subject} », le plus simple est de regarder d'abord la cause puis l'effet."
-    elif re.search(r"\b(comment)\b", text.lower()) and last_subject:
+    elif re.search(r"\bcomment\b", low) and last_subject:
         reply = f"Pour « {last_subject} », on peut procéder étape par étape. Donne-moi ce que tu as déjà."
     else:
         pool = RESPONSES.get(intent, RESPONSES["defaut"])
-        index = sum(len(x["text"]) for x in session_history[-8:]) % len(pool)
-        reply = pool[index]
+        # évite de toujours prendre la même réponse
+        seed = sum(ord(c) for c in text) + len(session_history)
+        reply = pool[seed % len(pool)]
 
     last_intent = intent
     last_subject = subject or last_subject
     return reply
 
 
-def url_action(text: str) -> str | None:
+def find_app_command(text: str) -> dict[str, Any] | None:
+    """Détecte une application/site dans une commande d'ouverture."""
     t = text.lower()
-    for name, url in SITES.items():
-        if re.search(rf"\b{re.escape(name)}\b", t):
-            if any(k in t for k in ("ouvre", "ouvrir", "lance", "aller", "va sur")):
-                return url
+
+    if not any(word in t for word in OPEN_WORDS):
+        return None
+
+    # Trie les alias du plus long au plus court pour éviter les collisions.
+    candidates: list[tuple[str, str, dict[str, Any]]] = []
+    for key, info in APP_COMMANDS.items():
+        for alias in info["aliases"]:
+            candidates.append((alias.lower(), key, info))
+
+    candidates.sort(key=lambda item: len(item[0]), reverse=True)
+
+    for alias, key, info in candidates:
+        if re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", t):
+            return {
+                "key": key,
+                "label": info["label"],
+                "url": info["url"],
+            }
+
+    return None
+
+
+def url_action(text: str) -> dict[str, Any] | None:
+    """Retourne une action d'ouverture plutôt qu'une simple URL."""
+    app = find_app_command(text)
+    if app:
+        return app
+
     m = re.search(r"https?://[^\s]+", text, flags=re.I)
     if m:
         url = m.group(0).rstrip(".,!?;)")
         parsed = urlparse(url)
         if parsed.scheme in {"http", "https"}:
-            return url
-    if re.search(r"\b(cherche|recherche)\b", t):
-        q = re.sub(r".*?\b(cherche|recherche)\b", "", text, count=1, flags=re.I).strip()
+            return {"label": url, "url": url, "key": "custom"}
+
+    if re.search(r"\b(cherche|recherche|google)\b", text.lower()):
+        q = re.sub(
+            r".*?\b(cherche|recherche|google)\b",
+            "",
+            text,
+            count=1,
+            flags=re.I,
+        ).strip()
         if q:
-            return "https://www.google.com/search?q=" + quote_plus(q)
+            return {
+                "label": "Recherche Google",
+                "url": "https://www.google.com/search?q=" + quote_plus(q),
+                "key": "google-search",
+            }
+
     return None
 
 
 def wants_weather(text: str) -> bool:
-    t = text.lower()
-    return bool(re.search(r"\b(météo|meteo|temps|prévisions|previsions)\b", t))
+    return bool(re.search(
+        r"\b(météo|meteo|temps|prévisions|previsions)\b",
+        text.lower()
+    ))
 
 
 def wants_market(text: str) -> bool:
-    t = text.lower()
-    return bool(re.search(r"\b(bourse|marché|marche|cac 40|cac40|nasdaq|dow jones|sp500|s&p 500|bitcoin|actions)\b", t))
+    return bool(re.search(
+        r"\b(bourse|marché|marche|cac 40|cac40|nasdaq|dow jones|sp500|s&p 500|bitcoin|actions)\b",
+        text.lower()
+    ))
 
 
 def find_city(text: str) -> str:
     t = text.lower()
+
     for key, value in CITY_ALIASES.items():
-        if key in t:
+        if re.search(rf"(?<!\w){re.escape(key)}(?!\w)", t):
             return value
+
     m = re.search(r"(?:à|a|sur|de)\s+([A-Za-zÀ-ÿ' -]{2,40})", text, re.I)
     if m:
         candidate = m.group(1).strip(" .,!?;")
-        candidate = re.sub(r"\b(la|le|les|au|aux|dans)\b", "", candidate, flags=re.I).strip()
+        candidate = re.sub(
+            r"\b(la|le|les|au|aux|dans)\b",
+            "",
+            candidate,
+            flags=re.I,
+        ).strip()
         if candidate:
             return candidate.title()
+
     return "Grenoble"
 
 
 def fetch_weather(city: str) -> dict[str, Any]:
     geo = requests.get(
         "https://geocoding-api.open-meteo.com/v1/search",
-        params={"name": city, "count": 1, "language": "fr", "format": "json"},
+        params={
+            "name": city,
+            "count": 1,
+            "language": "fr",
+            "format": "json",
+        },
         timeout=8,
     )
     geo.raise_for_status()
+
     results = geo.json().get("results") or []
     if not results:
         raise ValueError("Ville introuvable")
+
     place = results[0]
     lat = place["latitude"]
     lon = place["longitude"]
-    name = place.get("name", city)
+
     weather = requests.get(
         "https://api.open-meteo.com/v1/forecast",
         params={
             "latitude": lat,
             "longitude": lon,
-            "current": "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m",
+            "current": (
+                "temperature_2m,apparent_temperature,weather_code,"
+                "wind_speed_10m,relative_humidity_2m"
+            ),
             "timezone": "auto",
         },
         timeout=8,
     )
     weather.raise_for_status()
+
     current = weather.json().get("current", {})
+
     return {
-        "city": name,
+        "city": place.get("name", city),
         "temperature": current.get("temperature_2m"),
         "feels_like": current.get("apparent_temperature"),
         "humidity": current.get("relative_humidity_2m"),
         "wind": current.get("wind_speed_10m"),
         "code": current.get("weather_code"),
-        "condition": WEATHER_CODES.get(current.get("weather_code"), "Conditions inconnues"),
+        "condition": WEATHER_CODES.get(
+            current.get("weather_code"),
+            "Conditions inconnues"
+        ),
         "time": current.get("time"),
         "source": "Open-Meteo",
     }
@@ -921,31 +574,52 @@ def fetch_weather(city: str) -> dict[str, Any]:
 def fetch_market(label: str) -> dict[str, Any]:
     key = label.lower().strip()
     info = MARKETS.get(key)
+
     if info is None:
-        # recherche tolérante
-        best = difflib.get_close_matches(key, list(MARKETS.keys()), n=1, cutoff=0.65)
+        best = difflib.get_close_matches(
+            key,
+            list(MARKETS.keys()),
+            n=1,
+            cutoff=0.65,
+        )
         if not best:
             raise ValueError("Valeur introuvable")
         info = MARKETS[best[0]]
+
     symbol = info["symbol"]
+
     data = requests.get(
         f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_plus(symbol)}",
         params={"range": "1d", "interval": "5m"},
-        headers={"User-Agent": "NOVA/2.1"},
+        headers={"User-Agent": "NOVA/3.0"},
         timeout=8,
     )
     data.raise_for_status()
-    result = (data.json().get("chart", {}).get("result") or [None])[0]
+
+    result = (
+        data.json()
+        .get("chart", {})
+        .get("result") or [None]
+    )[0]
+
     if not result:
         raise ValueError("Donnée de marché indisponible")
+
     meta = result.get("meta", {})
     price = meta.get("regularMarketPrice")
     previous = meta.get("previousClose")
+
     change = None
     change_pct = None
-    if isinstance(price, (int, float)) and isinstance(previous, (int, float)) and previous:
+
+    if (
+        isinstance(price, (int, float))
+        and isinstance(previous, (int, float))
+        and previous
+    ):
         change = price - previous
         change_pct = change / previous * 100
+
     return {
         "symbol": symbol,
         "label": info["label"],
@@ -991,7 +665,16 @@ def status() -> dict[str, Any]:
         "mode_rapide": False,
         "history": session_history[-30:],
         "time": datetime.now().isoformat(timespec="seconds"),
-        "palette": {"bg": BG, "blue": BLUE, "cyan": CYAN, "violet": VIOLET, "white": WHITE, "muted": MUTED, "panel": PANEL, "line": LINE},
+        "palette": {
+            "bg": BG,
+            "blue": BLUE,
+            "cyan": CYAN,
+            "violet": VIOLET,
+            "white": WHITE,
+            "muted": MUTED,
+            "panel": PANEL,
+            "line": LINE,
+        },
     }
 
 
@@ -1009,44 +692,95 @@ def chat(payload: ChatRequest) -> JSONResponse:
             meteo = fetch_weather(city)
             action = {"type": "weather", "data": meteo}
             reply = (
-                f"Météo {meteo['city']} : {meteo['temperature']} °C, {meteo['condition']}. "
-                f"Ressenti {meteo['feels_like']} °C, humidité {meteo['humidity']} %."
+                f"Météo {meteo['city']} : {meteo['temperature']} °C, "
+                f"{meteo['condition']}. Ressenti {meteo['feels_like']} °C, "
+                f"humidité {meteo['humidity']} %."
             )
         except Exception:
-            reply = f"Je n'arrive pas à récupérer la météo de {city} pour le moment."
+            reply = (
+                f"Je n'arrive pas à récupérer la météo de {city} "
+                "pour le moment."
+            )
+
     elif wants_market(text):
         requested = "CAC 40"
         for name in MARKETS:
             if name in lower:
                 requested = name
                 break
+
         try:
             market = fetch_market(requested)
             action = {"type": "market", "data": market}
+
             if market["price"] is None:
-                reply = f"Les données de {market['label']} sont momentanément indisponibles."
+                reply = (
+                    f"Les données de {market['label']} "
+                    "sont momentanément indisponibles."
+                )
             else:
                 currency = market["currency"] or ""
                 change = market["change_pct"]
-                suffix = f", variation {change:+.2f} %" if isinstance(change, (int, float)) else ""
-                reply = f"{market['label']} : {market['price']} {currency}{suffix}."
+                suffix = (
+                    f", variation {change:+.2f} %"
+                    if isinstance(change, (int, float))
+                    else ""
+                )
+                reply = (
+                    f"{market['label']} : {market['price']} "
+                    f"{currency}{suffix}."
+                )
         except Exception:
-            reply = "Je n'arrive pas à récupérer la donnée de marché pour le moment."
+            reply = (
+                "Je n'arrive pas à récupérer la donnée de marché "
+                "pour le moment."
+            )
+
     else:
-        url = url_action(text)
-        if url:
-            action = {"type": "open_url", "url": url, "device": payload.device}
-            reply = "J'ouvre le site sur cet appareil."
+        command = url_action(text)
+
+        if command:
+            # IMPORTANT :
+            # Sur iPhone, un lien HTTPS peut être pris en charge par l'app
+            # installée via Universal Links. Sinon, il reste une URL web.
+            # On ne prétend donc pas détecter à distance si l'app est installée.
+            action = {
+                "type": "open_url",
+                "url": command["url"],
+                "device": payload.device,
+                "label": command["label"],
+                "app_first": True,
+                "fallback_url": command["url"],
+            }
+
+            if command["key"] == "custom":
+                reply = "J'ouvre le lien demandé."
+            else:
+                reply = f"J'ouvre {command['label']}."
+
         elif "sur le pc" in lower or "depuis le pc" in lower:
-            reply = "Pour une action sur le PC, il faut que l'agent NOVA du PC soit lancé."
-        elif re.search(r"\b(heure|quelle heure|il est quelle heure)\b", lower):
+            reply = (
+                "Pour lancer une application installée sur le PC, "
+                "l'agent NOVA du PC doit être actif."
+            )
+
+        elif re.search(
+            r"\b(heure|quelle heure|il est quelle heure)\b",
+            lower
+        ):
             reply = "Il est " + datetime.now().strftime("%H:%M") + "."
+
         elif "mode rapide" in lower:
-            reply = "Le mode rapide est géré directement par l'interface du téléphone."
+            reply = (
+                "Le mode rapide est géré directement "
+                "par l'interface du téléphone."
+            )
+
         elif payload.fast:
             reply = conversation_reply(text)
             if len(reply) > 100:
                 reply = reply.split(".")[0] + "."
+
         else:
             reply = conversation_reply(text)
 
@@ -1059,7 +793,10 @@ def weather(payload: LocationRequest) -> dict[str, Any]:
     try:
         return fetch_weather(payload.city)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Météo indisponible: {exc}") from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"Météo indisponible: {exc}",
+        ) from exc
 
 
 @app.post("/api/market")
@@ -1067,14 +804,23 @@ def market(payload: MarketRequest) -> dict[str, Any]:
     try:
         return fetch_market(payload.market)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Marché indisponible: {exc}") from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"Marché indisponible: {exc}",
+        ) from exc
 
 
 @app.get("/manifest.webmanifest")
 def manifest() -> FileResponse:
-    return FileResponse(BASE_DIR / "manifest.webmanifest", media_type="application/manifest+json")
+    return FileResponse(
+        BASE_DIR / "manifest.webmanifest",
+        media_type="application/manifest+json",
+    )
 
 
 @app.get("/sw.js")
 def service_worker() -> FileResponse:
-    return FileResponse(BASE_DIR / "sw.js", media_type="application/javascript")
+    return FileResponse(
+        BASE_DIR / "sw.js",
+        media_type="application/javascript",
+    )
