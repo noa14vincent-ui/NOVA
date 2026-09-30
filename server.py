@@ -187,7 +187,7 @@ CITY_ALIASES = {
     'anglet': 'Anglet',
     'angouleme': 'Angoulême',
     'annecy': 'Annecy',
-    "Régnié-Durrette: "Régnié-Durrette",
+    "Régnié-Durrette": "Régnié-Durrette",
     'annemasse': 'Annemasse',
     'antibes': 'Antibes',
     'antony': 'Antony',
