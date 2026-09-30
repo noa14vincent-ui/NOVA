@@ -836,7 +836,65 @@
      VOIX
   ========================= */
 
- function speak(text){
+function getBestFrenchVoice(){
+
+  if(!('speechSynthesis' in window)){
+    return null;
+  }
+
+  const voices =
+    window.speechSynthesis.getVoices();
+
+  const frenchVoices =
+    voices.filter(voice =>
+      voice.lang &&
+      voice.lang.toLowerCase().startsWith('fr')
+    );
+
+  if(!frenchVoices.length){
+    return null;
+  }
+
+  const preferredNames = [
+    'amélie',
+    'amelie',
+    'audrey',
+    'julie',
+    'sophie',
+    'marie',
+    'alice',
+    'claire',
+    'camille',
+    'virginie',
+    'denise',
+    'hortense',
+    'éloïse',
+    'eloise',
+    'élise',
+    'elise',
+    'céline',
+    'celine',
+    'female',
+    'femme'
+  ];
+
+  const femaleVoice =
+    frenchVoices.find(voice => {
+
+      const voiceName =
+        (voice.name || '').toLowerCase();
+
+      return preferredNames.some(name =>
+        voiceName.includes(name)
+      );
+
+    });
+
+  return femaleVoice || frenchVoices[0];
+}
+
+
+function speak(text){
 
   if(
     !state.voice ||
@@ -847,81 +905,43 @@
 
   try{
 
-    const synth = window.speechSynthesis;
+    const synth =
+      window.speechSynthesis;
 
     synth.cancel();
 
-    const voices = synth.getVoices();
-
-    /*
-      On cherche en priorité une voix française
-      avec un nom généralement associé à une voix féminine.
-    */
-
-    const femaleKeywords = [
-      'Amélie',
-      'Amelie',
-      'Audrey',
-      'Julie',
-      'Sophie',
-      'Marie',
-      'Female',
-      'Femme',
-      'Claire',
-      'Virginie',
-      'Alice',
-      'Camille'
-    ];
-
-    let voice = voices.find(v =>
-      v.lang &&
-      v.lang.toLowerCase().startsWith('fr') &&
-      femaleKeywords.some(keyword =>
-        v.name.toLowerCase().includes(
-          keyword.toLowerCase()
-        )
-      )
-    );
-
-    /*
-      Si aucune voix avec un nom féminin
-      n'est disponible, on prend une voix française.
-    */
-
-    if(!voice){
-
-      voice = voices.find(v =>
-        v.lang &&
-        v.lang.toLowerCase().startsWith('fr')
-      );
-
-    }
-
-    const u =
+    const utterance =
       new SpeechSynthesisUtterance(text);
 
-    u.lang = 'fr-FR';
+    const voice =
+      getBestFrenchVoice();
+
+    utterance.lang =
+      'fr-FR';
 
     if(voice){
-      u.voice = voice;
+      utterance.voice =
+        voice;
     }
 
-    /*
-      Réglages plus naturels :
-      légèrement plus lent et plus doux.
-    */
+    utterance.rate =
+      0.88;
 
-    u.rate = 0.94;
-    u.pitch = 1.08;
-    u.volume = 1;
+    utterance.pitch =
+      1.04;
 
-    synth.speak(u);
+    utterance.volume =
+      1;
 
-  }catch(e){
+    synth.speak(
+      utterance
+    );
+
+  }catch(error){
 
     console.warn(
       'Synthèse vocale indisponible',
-      e
+      error
     );
 
   }
