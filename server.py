@@ -74,15 +74,60 @@ def open_action(text:str,device:str)->dict[str,Any]|None:
     m=re.search(r"https?://[^\s]+",text,re.I)
     if m and urlparse(m.group(0)).scheme in {"http","https"}: return {"type":"open_url","url":m.group(0).rstrip(".,!?;)"),"device":device,"label":"Lien"}
     return None
-def ask_gemini(text:str,fast:bool)->str|None:
-    if not gemini_client:return None
-    hist="\n".join(f"{x['role']}: {x['text']}" for x in session_history[-10:])
-    prompt=f"""Tu es NOVA, une assistante IA française utile et chaleureuse. Tu aides particulièrement un élève qui apprend Python, C#, Unity et le développement de jeux. Réponds seulement en français. {'Réponds en deux phrases maximum.' if fast else 'Explique clairement, avec des étapes et du code directement utilisable lorsque nécessaire.'} Ne prétends jamais ouvrir une application, contrôler un téléphone ou avoir consulté des données en direct. Historique: {hist}\nMessage utilisateur: {text}"""
+def ask_gemini(text: str, fast: bool) -> str | None:
+    if not gemini_client:
+        print("❌ Gemini : client non initialisé")
+        return None
+
+    hist = "\n".join(
+        f"{x['role']}: {x['text']}"
+        for x in session_history[-10:]
+    )
+
+    prompt = f"""
+Tu es NOVA, une assistante IA française utile, naturelle et chaleureuse.
+
+Tu aides particulièrement un élève qui apprend :
+- Python
+- C#
+- Unity
+- développement de jeux
+- intelligence artificielle
+
+Règles :
+- Réponds uniquement en français.
+- Sois naturelle et facile à comprendre.
+- {'Réponds en deux phrases maximum.' if fast else 'Explique clairement avec des étapes lorsque c’est utile.'}
+- Pour du code, donne du code directement utilisable.
+- Ne prétends jamais avoir ouvert une application ou contrôlé un appareil si NOVA ne l'a pas réellement fait.
+
+Historique récent :
+{hist}
+
+Message utilisateur :
+{text}
+"""
+
     try:
-        answer=(gemini_client.models.generate_content(model=GEMINI_MODEL,contents=prompt).text or "").strip()
-        return answer[:4000] or None
+        response = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+        )
+
+        print("✅ Réponse Gemini reçue")
+
+        answer = (response.text or "").strip()
+
+        if not answer:
+            print("⚠️ Gemini a répondu sans texte")
+            print("Réponse complète :", response)
+            return None
+
+        return answer[:4000]
+
     except Exception as error:
-        print("Erreur Gemini:",error);return None
+        print("❌ ERREUR GEMINI COMPLÈTE :", repr(error))
+        return None
 
 @app.get("/")
 def home(): return FileResponse(BASE_DIR/"index.html")
