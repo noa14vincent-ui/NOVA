@@ -9,7 +9,7 @@ import requests
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
-
+from apps import router as apps_router, try_open
 try:
     from google import genai
     from google.genai import types
