@@ -1,261 +1,316 @@
-# -*- coding: utf-8 -*-
-"""
-NOVA backend
-Gemini + commandes + météo + bourse + mémoire de conversation
-"""
-
-from __future__ import annotations
-
-import difflib
 import os
 import re
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
-from google import genai
 from pydantic import BaseModel, Field
+
+try:
+    from google import genai
+    from google.genai import types
+except Exception:
+    genai = None
+    types = None
 
 
 # ============================================================
-# CONFIGURATION
+# NOVA 4.2 — serveur optimisé
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv(
-    "GEMINI_MODEL",
-    "gemini-3.8-flash"
-).strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
 
-app = FastAPI(
-    title="NOVA",
-    version="4.1.0"
-)
+# Gemini: court timeout + 1 seule tentative.
+GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "9000"))
+GEMINI_MAX_OUTPUT = int(os.getenv("GEMINI_MAX_OUTPUT", "300"))
 
-
-# ============================================================
-# GEMINI
-# ============================================================
+app = FastAPI(title="NOVA", version="4.2.0")
 
 gemini_client = None
-
-if GEMINI_API_KEY:
+if genai and GEMINI_API_KEY:
     try:
-        gemini_client = genai.Client(
-            api_key=GEMINI_API_KEY
+        retry_options = types.HttpRetryOptions(
+            attempts=1,
+            initial_delay=0.1,
+            max_delay=0.2,
+            jitter=0.0,
+            http_status_codes=[408, 429, 500, 502, 503, 504],
         )
-
-        print("========================================")
-        print("NOVA - GEMINI")
-        print("Clé détectée : OUI")
-        print(f"Modèle : {GEMINI_MODEL}")
-        print("Client Gemini : OK")
-        print("========================================")
-
+        http_options = types.HttpOptions(
+            timeout=GEMINI_TIMEOUT_MS,
+            retry_options=retry_options,
+        )
+        gemini_client = genai.Client(
+            api_key=GEMINI_API_KEY,
+            http_options=http_options,
+        )
+        print("✅ Gemini initialisé :", GEMINI_MODEL)
     except Exception as error:
-        print("========================================")
-        print("ERREUR INITIALISATION GEMINI")
-        print(repr(error))
-        print("========================================")
-        gemini_client = None
-
-else:
-    print("========================================")
-    print("ATTENTION : GEMINI_API_KEY ABSENTE")
-    print("========================================")
+        print("❌ Gemini non initialisé :", repr(error))
 
 
 # ============================================================
-# MÉMOIRE
+# MÉMOIRE COURTE
 # ============================================================
 
 session_history: list[dict[str, str]] = []
+MAX_HISTORY = 8
 
 
 def remember(role: str, text: str) -> None:
-    session_history.append({
-        "role": role,
-        "text": text
-    })
+    session_history.append({"role": role, "text": text[:1200]})
+    if len(session_history) > MAX_HISTORY:
+        del session_history[:-MAX_HISTORY]
 
-    # Garde seulement les 30 derniers messages
-    del session_history[:-30]
+
+def history_text() -> str:
+    if not session_history:
+        return ""
+    lines = []
+    for item in session_history[-6:]:
+        speaker = "Utilisateur" if item["role"] == "user" else "NOVA"
+        lines.append(f"{speaker}: {item['text']}")
+    return "\n".join(lines)
 
 
 # ============================================================
-# APPLICATIONS / SITES
+# RÉPONSES LOCALES — RAPIDES
 # ============================================================
 
-APP_COMMANDS = {
-
-    "netflix": (
-        ["netflix"],
-        "https://www.netflix.com/",
-        "Netflix"
-    ),
-
-    "youtube": (
-        ["youtube", "youtube music"],
-        "https://www.youtube.com/",
-        "YouTube"
-    ),
-
-    "spotify": (
-        ["spotify"],
-        "https://open.spotify.com/",
-        "Spotify"
-    ),
-
-    "discord": (
-        ["discord"],
-        "https://discord.com/app",
-        "Discord"
-    ),
-
-    "instagram": (
-        ["instagram", "insta"],
-        "https://www.instagram.com/",
-        "Instagram"
-    ),
-
-    "tiktok": (
-        ["tiktok", "tik tok"],
-        "https://www.tiktok.com/",
-        "TikTok"
-    ),
-
-    "chatgpt": (
-        ["chatgpt", "chat gpt"],
-        "https://chatgpt.com/",
-        "ChatGPT"
-    ),
-
-    "gmail": (
-        ["gmail", "mail"],
-        "https://mail.google.com/",
-        "Gmail"
-    ),
-
-    "github": (
-        ["github", "git hub"],
-        "https://github.com/",
-        "GitHub"
-    ),
-
-    "roblox": (
-        ["roblox"],
-        "https://www.roblox.com/",
-        "Roblox"
-    ),
-
-    "minecraft": (
-        ["minecraft"],
-        "https://www.minecraft.net/",
-        "Minecraft"
-    ),
-
-    "steam": (
-        ["steam"],
-        "https://store.steampowered.com/",
-        "Steam"
-    ),
-
-    "twitch": (
-        ["twitch"],
-        "https://www.twitch.tv/",
-        "Twitch"
-    ),
-
-    "google maps": (
-        ["google maps", "maps"],
-        "https://www.google.com/maps/",
-        "Google Maps"
-    ),
-
-    "wikipedia": (
-        ["wikipedia", "wiki"],
-        "https://www.wikipedia.org/",
-        "Wikipedia"
-    ),
-
-    "reddit": (
-        ["reddit"],
-        "https://www.reddit.com/",
-        "Reddit"
-    ),
+LOCAL_RESPONSES = {
+    "salut": [
+        "Salut ! Je suis là.",
+        "Salut ! Prête à t'aider.",
+        "Bonjour ! Qu'est-ce qu'on fait ?",
+        "Hey ! NOVA est opérationnelle.",
+        "Salut ! Je t'écoute.",
+        "Bonjour ! Je suis prête.",
+        "Salut ! On peut commencer.",
+        "Hey ! Dis-moi ce que tu veux faire.",
+        "Bonjour ! Que puis-je faire pour toi ?",
+        "Salut ! Système NOVA opérationnel.",
+    ],
+    "merci": [
+        "Avec plaisir.",
+        "De rien !",
+        "Avec plaisir, toujours.",
+        "Pas de souci.",
+        "Je t'en prie.",
+        "C'est fait.",
+        "Avec plaisir !",
+        "Pas de problème.",
+        "Tout est bon.",
+        "Je suis là pour ça.",
+    ],
+    "humeur": [
+        "Tout fonctionne correctement de mon côté.",
+        "Je suis opérationnelle et prête à aider.",
+        "Systèmes actifs. On peut continuer.",
+        "Je fonctionne normalement.",
+        "Tout est au vert.",
+        "NOVA est prête.",
+        "Je suis en forme numérique aujourd'hui.",
+        "Mes systèmes répondent correctement.",
+        "Tout semble stable.",
+        "Prête pour la suite.",
+    ],
+    "probleme": [
+        "Explique-moi le problème et on va le découper étape par étape.",
+        "Dis-moi ce qui ne fonctionne pas.",
+        "Je peux t'aider à diagnostiquer ça.",
+        "On va chercher la cause.",
+        "Décris-moi ce qui se passe.",
+        "On va résoudre ça méthodiquement.",
+        "Donne-moi le message d'erreur.",
+        "Je t'écoute. Qu'est-ce qui bloque ?",
+        "On peut vérifier chaque étape.",
+        "Commence par me dire ce qui s'est passé.",
+    ],
+    "idee": [
+        "Bonne idée. Développons-la.",
+        "Intéressant. On peut en faire un vrai projet.",
+        "Raconte-moi ton idée.",
+        "Je peux t'aider à la structurer.",
+        "On peut commencer par définir l'objectif.",
+        "Décris-moi ce que tu imagines.",
+        "Ça peut devenir intéressant.",
+        "On va transformer l'idée en étapes concrètes.",
+        "Commence par le résultat que tu veux obtenir.",
+        "Je suis prête à explorer l'idée avec toi.",
+    ],
+    "projet": [
+        "Parlons du projet. Quelle est la prochaine étape ?",
+        "On peut organiser le projet étape par étape.",
+        "Dis-moi où tu en es.",
+        "Je peux t'aider à structurer la suite.",
+        "Quel est le prochain objectif ?",
+        "On peut découper le projet en petites tâches.",
+        "Montre-moi ce qui fonctionne déjà.",
+        "Décris-moi le résultat final recherché.",
+        "On peut commencer par l'architecture.",
+        "Je suis prête à travailler dessus.",
+    ],
+    "question": [
+        "Oui, je t'écoute.",
+        "Pose-moi ta question.",
+        "Vas-y.",
+        "Je t'écoute.",
+        "Quelle est ta question ?",
+        "Dis-moi ce que tu veux savoir.",
+        "Je peux essayer de t'expliquer.",
+        "Vas-y, je suis prête.",
+        "Pose ta question.",
+        "Je regarde ça avec toi.",
+    ],
+    "defaut": [
+        "Je t'écoute.",
+        "D'accord. Continue.",
+        "Compris.",
+        "Je suis là.",
+        "Vas-y.",
+        "Dis-m'en plus.",
+        "Je te suis.",
+        "Continue.",
+        "D'accord.",
+        "Je suis prête.",
+    ],
 }
 
+_response_index: dict[str, int] = {key: 0 for key in LOCAL_RESPONSES}
+
+
+def local_response(category: str) -> str:
+    bank = LOCAL_RESPONSES.get(category, LOCAL_RESPONSES["defaut"])
+    index = _response_index.get(category, 0)
+    answer = bank[index % len(bank)]
+    _response_index[category] = index + 1
+    return answer
+
+
+def local_conversation(text: str) -> str:
+    t = text.lower().strip()
+
+    if re.search(r"\b(salut|bonjour|bonsoir|hello|hey|coucou)\b", t):
+        return local_response("salut")
+
+    if re.search(r"\b(merci|thanks|thank you)\b", t):
+        return local_response("merci")
+
+    if re.search(r"\b(comment ça va|comment ca va|ça va|ca va|comment vas[- ]tu)\b", t):
+        return local_response("humeur")
+
+    if re.search(r"\b(problème|probleme|bug|erreur|ça marche pas|ca marche pas|bloqué|bloque)\b", t):
+        return local_response("probleme")
+
+    if re.search(r"\b(idée|idee|j'ai pensé|j ai pense|imagine)\b", t):
+        return local_response("idee")
+
+    if re.search(r"\b(projet|développer|developper|coder|programmation)\b", t):
+        return local_response("projet")
+
+    if t.endswith("?") or re.search(r"^(pourquoi|comment|qui|quoi|quel|quelle|où|ou|quand|combien)\b", t):
+        return local_response("question")
+
+    return local_response("defaut")
+
+
+# ============================================================
+# COMMANDES
+# ============================================================
 
 OPEN_WORDS = (
-    "ouvre",
-    "ouvrir",
-    "lance",
-    "lancer",
-    "démarre",
-    "demarre",
-    "démarrer",
-    "demarrer",
-    "va sur",
-    "aller sur",
-    "accède",
-    "accede",
-    "affiche",
+    "ouvre", "ouvrir", "lance", "lancer", "démarre", "demarre",
+    "démarrer", "demarrer", "va sur", "aller sur", "mets", "met",
+    "accède", "accede", "affiche"
 )
 
-
-# ============================================================
-# MARCHÉS
-# ============================================================
-
-MARKETS = {
-    "cac 40": ("^FCHI", "CAC 40"),
-    "cac40": ("^FCHI", "CAC 40"),
-    "nasdaq": ("^IXIC", "Nasdaq"),
-    "dow": ("^DJI", "Dow Jones"),
-    "dow jones": ("^DJI", "Dow Jones"),
-    "sp500": ("^GSPC", "S&P 500"),
-    "bitcoin": ("BTC-USD", "Bitcoin"),
-    "apple": ("AAPL", "Apple"),
-    "tesla": ("TSLA", "Tesla"),
-    "amazon": ("AMZN", "Amazon"),
-    "microsoft": ("MSFT", "Microsoft"),
-    "nvidia": ("NVDA", "NVIDIA"),
-    "meta": ("META", "Meta"),
-    "lvmh": ("MC.PA", "LVMH"),
-    "totalenergies": ("TTE.PA", "TotalEnergies"),
+APP_COMMANDS = {
+    "netflix": ("Netflix", "https://www.netflix.com/"),
+    "youtube": ("YouTube", "https://www.youtube.com/"),
+    "spotify": ("Spotify", "https://open.spotify.com/"),
+    "discord": ("Discord", "https://discord.com/app"),
+    "instagram": ("Instagram", "https://www.instagram.com/"),
+    "tiktok": ("TikTok", "https://www.tiktok.com/"),
+    "chatgpt": ("ChatGPT", "https://chatgpt.com/"),
+    "gmail": ("Gmail", "https://mail.google.com/"),
+    "google": ("Google", "https://www.google.com/"),
+    "github": ("GitHub", "https://github.com/"),
+    "brawl stars": ("Brawl Stars", "https://link.brawlstars.com/"),
+    "brawl": ("Brawl Stars", "https://link.brawlstars.com/"),
+    "clash royale": ("Clash Royale", "https://link.clashroyale.com/"),
+    "clash of clans": ("Clash of Clans", "https://link.clashofclans.com/"),
+    "roblox": ("Roblox", "https://www.roblox.com/"),
+    "minecraft": ("Minecraft", "https://www.minecraft.net/"),
+    "steam": ("Steam", "https://store.steampowered.com/"),
+    "twitch": ("Twitch", "https://www.twitch.tv/"),
+    "prime video": ("Prime Video", "https://www.primevideo.com/"),
+    "disney": ("Disney+", "https://www.disneyplus.com/"),
+    "disney+": ("Disney+", "https://www.disneyplus.com/"),
+    "max": ("Max", "https://www.max.com/"),
+    "google maps": ("Google Maps", "https://maps.google.com/"),
+    "maps": ("Google Maps", "https://maps.google.com/"),
+    "wikipedia": ("Wikipedia", "https://www.wikipedia.org/"),
+    "reddit": ("Reddit", "https://www.reddit.com/"),
+    "linkedin": ("LinkedIn", "https://www.linkedin.com/"),
 }
 
 
-# ============================================================
-# VILLES
-# ============================================================
+def find_app_command(text: str):
+    t = text.lower().strip()
+    if not any(t.startswith(word) or f" {word} " in f" {t} " for word in OPEN_WORDS):
+        return None
 
-CITIES = {
-    "grenoble": "Grenoble",
-    "paris": "Paris",
-    "lyon": "Lyon",
-    "marseille": "Marseille",
-    "toulouse": "Toulouse",
-    "nice": "Nice",
-    "bordeaux": "Bordeaux",
-    "lille": "Lille",
-    "strasbourg": "Strasbourg",
-}
+    # Longest first prevents "clash" or "disney" from winning over full names.
+    for key in sorted(APP_COMMANDS, key=len, reverse=True):
+        if key in t:
+            label, url = APP_COMMANDS[key]
+            return label, url
+    return None
+
+
+def detect_device(text: str) -> str:
+    t = text.lower()
+    if re.search(r"\b(sur le pc|depuis le pc|sur mon pc|sur ordinateur|sur l'ordinateur|sur ordinateur)\b", t):
+        return "pc"
+    if re.search(r"\b(sur mon tel|sur le tel|sur mon téléphone|sur le téléphone|sur iphone|sur mon iphone|sur le téléphone)\b", t):
+        return "iphone"
+    return "iphone"
+
+
+def open_action(text: str):
+    found = find_app_command(text)
+    if not found:
+        return None
+
+    label, url = found
+    device = detect_device(text)
+
+    # iPhone: HTTPS URL is intentionally used. Native apps can take over
+    # through their Universal Links when configured; otherwise Safari opens it.
+    return {
+        "type": "open_url",
+        "url": url,
+        "fallback_url": url,
+        "device": device,
+        "label": label,
+        "app_first": device == "iphone",
+    }
 
 
 # ============================================================
 # MÉTÉO
 # ============================================================
 
-WEATHER = {
+WEATHER_CODES = {
     0: "Ciel dégagé",
-    1: "Peu nuageux",
+    1: "Principalement dégagé",
     2: "Partiellement nuageux",
     3: "Couvert",
     45: "Brouillard",
@@ -274,831 +329,405 @@ WEATHER = {
     82: "Fortes averses",
     95: "Orage",
     96: "Orage avec grêle",
-    99: "Orage fort",
+    99: "Orage avec forte grêle",
+}
+
+CITY_ALIASES = {
+    "paris": "Paris",
+    "grenoble": "Grenoble",
+    "lyon": "Lyon",
+    "marseille": "Marseille",
+    "toulouse": "Toulouse",
+    "bordeaux": "Bordeaux",
+    "lille": "Lille",
+    "nice": "Nice",
+    "nantes": "Nantes",
+    "strasbourg": "Strasbourg",
+    "montpellier": "Montpellier",
+    "rennes": "Rennes",
+    "reims": "Reims",
+    "dijon": "Dijon",
+    "angers": "Angers",
+    "tours": "Tours",
+    "clermont": "Clermont-Ferrand",
+    "clermont ferrand": "Clermont-Ferrand",
 }
 
 
-# ============================================================
-# MODÈLES API
-# ============================================================
-
-class ChatRequest(BaseModel):
-    text: str = Field(
-        min_length=1,
-        max_length=4000
-    )
-
-    device: str = Field(
-        default="iphone",
-        max_length=30
-    )
-
-    fast: bool = False
-
-
-class LocationRequest(BaseModel):
-    city: str = Field(
-        default="Grenoble",
-        min_length=1,
-        max_length=60
-    )
-
-
-class MarketRequest(BaseModel):
-    market: str = Field(
-        default="CAC 40",
-        min_length=1,
-        max_length=60
-    )
-
-
-# ============================================================
-# OUTILS
-# ============================================================
-
-def clean(text: str) -> str:
-    return re.sub(
-        r"\s+",
-        " ",
-        text
-    ).strip()
-
-
-def get(
-    url: str,
-    **kwargs: Any
-) -> dict[str, Any]:
-
-    response = requests.get(
-        url,
-        timeout=10,
-        headers={
-            "User-Agent": "NOVA/4.1"
-        },
-        **kwargs
-    )
-
-    response.raise_for_status()
-
-    return response.json()
-
-
-# ============================================================
-# VILLE
-# ============================================================
-
-def city_from(text: str) -> str:
-
-    low = text.lower()
-
-    for alias, city in CITIES.items():
-
-        if re.search(
-            rf"(?<!\w){re.escape(alias)}(?!\w)",
-            low
-        ):
-            return city
-
-    match = re.search(
-        r"(?:à|a|sur|de)\s+([A-Za-zÀ-ÿ' -]{2,40})",
-        text,
-        re.I
-    )
-
-    if match:
-        return match.group(1).strip(
-            " .,!?;"
-        ).title()
-
+def extract_city(text: str) -> str:
+    t = text.lower()
+    for key in sorted(CITY_ALIASES, key=len, reverse=True):
+        if key in t:
+            return CITY_ALIASES[key]
     return "Grenoble"
 
 
-# ============================================================
-# MÉTÉO
-# ============================================================
+def get_weather(city: str):
+    try:
+        geo = requests.get(
+            "https://geocoding-api.open-meteo.com/v1/search",
+            params={"name": city, "count": 1, "language": "fr", "format": "json"},
+            timeout=4,
+        )
+        geo.raise_for_status()
+        results = geo.json().get("results") or []
+        if not results:
+            return None
 
-def weather(city: str) -> dict[str, Any]:
+        place = results[0]
+        lat, lon = place["latitude"], place["longitude"]
 
-    geocoding = get(
-        "https://geocoding-api.open-meteo.com/v1/search",
-        params={
-            "name": city,
-            "count": 1,
-            "language": "fr",
-            "format": "json",
+        weather = requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "current": "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
+                "timezone": "auto",
+            },
+            timeout=4,
+        )
+        weather.raise_for_status()
+        current = weather.json().get("current", {})
+
+        return {
+            "city": place.get("name", city),
+            "temperature": current.get("temperature_2m"),
+            "humidity": current.get("relative_humidity_2m"),
+            "wind": current.get("wind_speed_10m"),
+            "code": current.get("weather_code"),
+            "description": WEATHER_CODES.get(current.get("weather_code"), "Conditions inconnues"),
         }
-    )
-
-    results = geocoding.get("results") or []
-
-    if not results:
-        raise ValueError(
-            f"Ville introuvable : {city}"
-        )
-
-    place = results[0]
-
-    forecast = get(
-        "https://api.open-meteo.com/v1/forecast",
-        params={
-            "latitude": place["latitude"],
-            "longitude": place["longitude"],
-            "current": (
-                "temperature_2m,"
-                "apparent_temperature,"
-                "weather_code,"
-                "wind_speed_10m,"
-                "relative_humidity_2m"
-            ),
-            "timezone": "auto",
-        }
-    )
-
-    current = forecast.get(
-        "current",
-        {}
-    )
-
-    return {
-        "city": place.get(
-            "name",
-            city
-        ),
-        "temperature": current.get(
-            "temperature_2m"
-        ),
-        "feels_like": current.get(
-            "apparent_temperature"
-        ),
-        "humidity": current.get(
-            "relative_humidity_2m"
-        ),
-        "wind": current.get(
-            "wind_speed_10m"
-        ),
-        "condition": WEATHER.get(
-            current.get("weather_code"),
-            "Conditions inconnues"
-        ),
-        "source": "Open-Meteo",
-    }
-
-
-# ============================================================
-# BOURSE
-# ============================================================
-
-def market(name: str) -> dict[str, Any]:
-
-    key = name.lower().strip()
-
-    if key not in MARKETS:
-
-        found = difflib.get_close_matches(
-            key,
-            list(MARKETS),
-            n=1,
-            cutoff=0.6
-        )
-
-        if not found:
-            raise ValueError(
-                "Valeur introuvable"
-            )
-
-        key = found[0]
-
-    symbol, label = MARKETS[key]
-
-    data = get(
-        f"https://query1.finance.yahoo.com/v8/finance/chart/{quote_plus(symbol)}",
-        params={
-            "range": "1d",
-            "interval": "5m"
-        }
-    )
-
-    result = (
-        data
-        .get("chart", {})
-        .get("result")
-        or [None]
-    )[0]
-
-    if not result:
-        raise ValueError(
-            "Donnée indisponible"
-        )
-
-    meta = result.get(
-        "meta",
-        {}
-    )
-
-    price = meta.get(
-        "regularMarketPrice"
-    )
-
-    previous = meta.get(
-        "previousClose"
-    )
-
-    percentage = None
-
-    if (
-        isinstance(price, (int, float))
-        and isinstance(previous, (int, float))
-        and previous
-    ):
-        percentage = (
-            (price - previous)
-            / previous
-            * 100
-        )
-
-    return {
-        "symbol": symbol,
-        "label": label,
-        "price": price,
-        "currency": meta.get(
-            "currency",
-            ""
-        ),
-        "previous_close": previous,
-        "change_pct": percentage,
-        "source": "Yahoo Finance",
-    }
-
-
-# ============================================================
-# OUVERTURE APPLICATION / SITE
-# ============================================================
-
-def open_action(
-    text: str,
-    device: str
-) -> dict[str, Any] | None:
-
-    low = text.lower()
-
-    if not any(
-        word in low
-        for word in OPEN_WORDS
-    ):
+    except Exception as error:
+        print("❌ Erreur météo:", repr(error))
         return None
 
-    sorted_apps = sorted(
-        APP_COMMANDS.items(),
-        key=lambda item: max(
-            map(
-                len,
-                item[1][0]
-            )
-        ),
-        reverse=True
-    )
 
-    for _, (
-        aliases,
-        url,
-        label
-    ) in sorted_apps:
+# ============================================================
+# MARCHÉS
+# ============================================================
 
-        found = any(
-            re.search(
-                rf"(?<!\w){re.escape(alias)}(?!\w)",
-                low
-            )
-            for alias in aliases
+MARKETS = {
+    "apple": "AAPL",
+    "tesla": "TSLA",
+    "nvidia": "NVDA",
+    "microsoft": "MSFT",
+    "amazon": "AMZN",
+    "google": "GOOGL",
+    "meta": "META",
+}
+
+
+def get_market(symbol: str):
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+        response = requests.get(
+            url,
+            params={"range": "1d", "interval": "5m"},
+            timeout=5,
+            headers={"User-Agent": "NOVA/4.2"},
         )
+        response.raise_for_status()
+        result = response.json()["chart"]["result"][0]
+        meta = result.get("meta", {})
+        price = meta.get("regularMarketPrice")
+        previous = meta.get("previousClose")
 
-        if found:
+        change = None
+        change_percent = None
+        if price is not None and previous:
+            change = price - previous
+            change_percent = (change / previous) * 100
 
-            return {
-                "type": "open_url",
-                "url": url,
-                "device": device,
-                "label": label,
-                "app_first": True,
-                "fallback_url": url,
-            }
-
-    match = re.search(
-        r"https?://[^\s]+",
-        text,
-        re.I
-    )
-
-    if match:
-
-        url = match.group(0).rstrip(
-            ".,!?;)"
-        )
-
-        if urlparse(url).scheme in {
-            "http",
-            "https"
-        }:
-
-            return {
-                "type": "open_url",
-                "url": url,
-                "device": device,
-                "label": "Lien",
-                "app_first": True,
-                "fallback_url": url,
-            }
-
-    return None
+        return {
+            "symbol": symbol,
+            "price": price,
+            "previous": previous,
+            "change": change,
+            "change_percent": change_percent,
+            "currency": meta.get("currency", "USD"),
+        }
+    except Exception as error:
+        print("❌ Erreur marché:", repr(error))
+        return None
 
 
 # ============================================================
-# GEMINI - CERVEAU DE NOVA
+# GEMINI RAPIDE
 # ============================================================
 
-def ask_gemini(
-    text: str,
-    fast: bool
-) -> str | None:
-
+def ask_gemini(text: str, fast: bool = False) -> str | None:
     if gemini_client is None:
-
-        print(
-            "❌ GEMINI : client non initialisé"
-        )
-
+        print("⚠️ Gemini indisponible : client non initialisé")
         return None
 
-    history_text = "\n".join(
-        f"{item['role']}: {item['text']}"
-        for item in session_history[-10:]
-    )
+    # On limite fortement l'historique envoyé pour éviter de ralentir chaque appel.
+    hist = history_text()
+    if len(hist) > 3500:
+        hist = hist[-3500:]
 
-    mode = (
-        "Réponds en deux phrases maximum."
+    style = (
+        "Réponds très brièvement, naturellement et directement. "
+        "Maximum 3 phrases, sauf si l'utilisateur demande une explication détaillée."
         if fast
         else
-        "Réponds clairement et naturellement. "
-        "Utilise des étapes lorsque c'est utile. "
-        "Pour le code, donne du code directement utilisable."
+        "Réponds naturellement, clairement et directement. "
+        "Évite les longues introductions et reste concis."
     )
 
-    system_instruction = """
-Tu es NOVA, une assistante IA française.
-
-Tu es :
-- naturelle
-- chaleureuse
-- claire
-- intelligente
-- concise quand la question est simple
-- détaillée quand la question le nécessite
-
-Tu aides particulièrement pour :
-- Python
-- C#
-- Unity
-- développement de jeux
-- intelligence artificielle
-- programmation
-- création de projets
-
-Règles importantes :
-- Réponds toujours en français.
-- Ne prétends jamais avoir effectué une action que NOVA n'a pas réellement effectuée.
-- Ne prétends pas contrôler un appareil si le serveur ne l'a pas réellement fait.
-- Si tu ne sais pas quelque chose, dis-le clairement.
-- Ne fabrique pas de données présentées comme réelles.
-"""
-
     prompt = f"""
-{system_instruction}
+Tu es NOVA, une assistante IA française intégrée dans une application personnelle.
+{style}
+Tu peux être chaleureuse et naturelle, mais ne prétends jamais avoir effectué une action que le serveur n'a pas réellement effectuée.
+Réponds en français sauf si l'utilisateur demande une autre langue.
 
-Mode :
-{mode}
+Conversation récente :
+{hist}
 
-Historique récent :
-{history_text}
-
-Message de l'utilisateur :
+Nouvelle demande de l'utilisateur :
 {text}
-"""
+""".strip()
+
+    started = time.perf_counter()
 
     try:
-
-        print(
-            "🧠 Envoi de la demande à Gemini..."
-        )
-
-        print(
-            f"🧠 Modèle utilisé : {GEMINI_MODEL}"
-        )
+        print(f"🧠 Gemini → {GEMINI_MODEL} | timeout={GEMINI_TIMEOUT_MS}ms")
 
         response = gemini_client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.55,
+                max_output_tokens=GEMINI_MAX_OUTPUT,
+                candidate_count=1,
+            ),
         )
 
-        print(
-            "✅ Réponse Gemini reçue."
-        )
-
-        try:
-            answer = response.text
-        except Exception as error:
-            print(
-                "⚠️ Impossible de lire response.text :",
-                repr(error)
-            )
-            answer = ""
-
-        answer = (
-            answer or ""
-        ).strip()
+        answer = (response.text or "").strip()
+        elapsed = time.perf_counter() - started
+        print(f"✅ Gemini OK en {elapsed:.2f}s")
 
         if not answer:
-
-            print(
-                "⚠️ Gemini a répondu sans texte."
-            )
-
-            print(
-                "Réponse Gemini complète :",
-                repr(response)
-            )
-
+            print("⚠️ Gemini a renvoyé une réponse vide")
             return None
 
-        print(
-            f"📝 Réponse Gemini : {answer[:200]}"
-        )
-
-        return answer[:4000]
+        return answer[:3500]
 
     except Exception as error:
-
-        print(
-            "========================================"
-        )
-
-        print(
-            "❌ ERREUR GEMINI"
-        )
-
-        print(
-            "Type :",
-            type(error).__name__
-        )
-
-        print(
-            "Erreur :",
-            str(error)
-        )
-
-        print(
-            "Représentation :",
-            repr(error)
-        )
-
-        print(
-            "========================================"
-        )
-
+        elapsed = time.perf_counter() - started
+        print(f"❌ Gemini erreur après {elapsed:.2f}s")
+        print(f"   Type : {type(error).__name__}")
+        print(f"   Message : {error!s}")
+        print(f"   Représentation : {error!r}")
         return None
 
 
 # ============================================================
-# PAGE PRINCIPALE
+# REQUÊTES
 # ============================================================
+
+class ChatRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+    fast: bool = False
+
+
+def wants_weather(text: str) -> bool:
+    t = text.lower()
+    return bool(re.search(r"\b(météo|meteo|temps|température|temperature)\b", t))
+
+
+def wants_market(text: str) -> bool:
+    t = text.lower()
+    return bool(
+        re.search(
+            r"\b(bourse|action|actions|marché|marche|cours|nvidia|apple|tesla|microsoft|amazon|google|meta)\b",
+            t,
+        )
+    )
+
+
+def wants_time(text: str) -> bool:
+    t = text.lower()
+    return bool(re.search(r"\b(quelle heure|il est quelle heure|heure actuelle|heure)\b", t))
+
 
 @app.get("/")
-def home():
+def root():
+    index = BASE_DIR / "index.html"
+    if index.exists():
+        return FileResponse(index)
+    return JSONResponse({"service": "NOVA", "version": "4.2.0"})
 
-    return FileResponse(
-        BASE_DIR / "index.html"
-    )
-
-
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
-@app.get("/api/health")
-def health():
-
-    return {
-        "status": "ok",
-        "service": "NOVA",
-        "version": app.version,
-        "gemini_configured": (
-            gemini_client is not None
-        ),
-        "gemini_model": GEMINI_MODEL,
-    }
-
-
-# ============================================================
-# STATUS
-# ============================================================
-
-@app.get("/api/status")
-def status():
-
-    return {
-        "online": True,
-        "history": session_history[-20:],
-        "time": datetime.now().isoformat(
-            timespec="seconds"
-        ),
-        "gemini_configured": (
-            gemini_client is not None
-        ),
-        "gemini_model": GEMINI_MODEL,
-    }
-
-
-# ============================================================
-# CHAT PRINCIPAL
-# ============================================================
-
-@app.post("/api/chat")
-def chat(
-    payload: ChatRequest
-) -> JSONResponse:
-
-    text = clean(
-        payload.text
-    )
-
-    remember(
-        "user",
-        text
-    )
-
-    low = text.lower()
-
-    action = None
-
-    try:
-
-        # ----------------------------------------------------
-        # MÉTÉO
-        # ----------------------------------------------------
-
-        if re.search(
-            r"\b(météo|meteo|temps|prévisions|previsions)\b",
-            low
-        ):
-
-            city = city_from(text)
-
-            data = weather(city)
-
-            action = {
-                "type": "weather",
-                "data": data
-            }
-
-            reply = (
-                f"Météo {data['city']} : "
-                f"{data['temperature']} °C, "
-                f"{data['condition']}. "
-                f"Ressenti {data['feels_like']} °C, "
-                f"humidité {data['humidity']} %."
-            )
-
-        # ----------------------------------------------------
-        # BOURSE
-        # ----------------------------------------------------
-
-        elif re.search(
-            r"\b("
-            r"bourse|marché|marche|"
-            r"cac 40|cac40|nasdaq|"
-            r"dow jones|sp500|bitcoin|actions"
-            r")\b",
-            low
-        ):
-
-            name = next(
-                (
-                    market_name
-                    for market_name in MARKETS
-                    if market_name in low
-                ),
-                "cac 40"
-            )
-
-            data = market(name)
-
-            action = {
-                "type": "market",
-                "data": data
-            }
-
-            if isinstance(
-                data["change_pct"],
-                (int, float)
-            ):
-
-                variation = (
-                    f", variation "
-                    f"{data['change_pct']:+.2f} %"
-                )
-
-            else:
-                variation = ""
-
-            reply = (
-                f"{data['label']} : "
-                f"{data['price']} "
-                f"{data['currency']}"
-                f"{variation}."
-            )
-
-        # ----------------------------------------------------
-        # COMMANDES D'OUVERTURE
-        # ----------------------------------------------------
-
-        else:
-
-            action = open_action(
-                text,
-                payload.device
-            )
-
-            if action:
-
-                reply = (
-                    f"J'ouvre "
-                    f"{action['label']}."
-                )
-
-            # ------------------------------------------------
-            # HEURE
-            # ------------------------------------------------
-
-            elif re.search(
-                r"\b(heure|quelle heure|"
-                r"il est quelle heure)\b",
-                low
-            ):
-
-                reply = (
-                    "Il est "
-                    + datetime.now().strftime(
-                        "%H:%M"
-                    )
-                    + "."
-                )
-
-            # ------------------------------------------------
-            # MODE RAPIDE
-            # ------------------------------------------------
-
-            elif "mode rapide" in low:
-
-                reply = (
-                    "Le mode rapide est "
-                    "géré directement par "
-                    "l'interface de NOVA."
-                )
-
-            # ------------------------------------------------
-            # GEMINI
-            # ------------------------------------------------
-
-            else:
-
-                reply = ask_gemini(
-                    text,
-                    payload.fast
-                )
-
-                if not reply:
-
-                    reply = (
-                        "Je rencontre actuellement "
-                        "un problème avec mon moteur "
-                        "Gemini. Consulte les logs "
-                        "du serveur NOVA pour voir "
-                        "l'erreur exacte."
-                    )
-
-    except Exception as error:
-
-        print(
-            "========================================"
-        )
-
-        print(
-            "❌ ERREUR NOVA"
-        )
-
-        print(
-            "Type :",
-            type(error).__name__
-        )
-
-        print(
-            "Erreur :",
-            str(error)
-        )
-
-        print(
-            "Représentation :",
-            repr(error)
-        )
-
-        print(
-            "========================================"
-        )
-
-        reply = (
-            "Je n'arrive pas à récupérer "
-            "cette information pour le moment."
-        )
-
-    remember(
-        "nova",
-        reply
-    )
-
-    return JSONResponse({
-        "text": reply,
-        "action": action
-    })
-
-
-# ============================================================
-# API MÉTÉO
-# ============================================================
-
-@app.post("/api/weather")
-def weather_api(
-    payload: LocationRequest
-):
-
-    try:
-
-        return weather(
-            payload.city
-        )
-
-    except Exception as error:
-
-        raise HTTPException(
-            status_code=502,
-            detail=(
-                f"Météo indisponible : "
-                f"{error}"
-            )
-        )
-
-
-# ============================================================
-# API MARCHÉ
-# ============================================================
-
-@app.post("/api/market")
-def market_api(
-    payload: MarketRequest
-):
-
-    try:
-
-        return market(
-            payload.market
-        )
-
-    except Exception as error:
-
-        raise HTTPException(
-            status_code=502,
-            detail=(
-                f"Marché indisponible : "
-                f"{error}"
-            )
-        )
-
-
-# ============================================================
-# PWA
-# ============================================================
 
 @app.get("/manifest.webmanifest")
 def manifest():
-
-    return FileResponse(
-        BASE_DIR / "manifest.webmanifest",
-        media_type="application/manifest+json"
-    )
+    path = BASE_DIR / "manifest.webmanifest"
+    if path.exists():
+        return FileResponse(path, media_type="application/manifest+json")
+    return JSONResponse({"name": "NOVA"})
 
 
 @app.get("/sw.js")
 def service_worker():
+    path = BASE_DIR / "sw.js"
+    if path.exists():
+        return FileResponse(path, media_type="application/javascript")
+    return JSONResponse({"error": "sw.js absent"}, status_code=404)
 
-    return FileResponse(
-        BASE_DIR / "sw.js",
-        media_type="application/javascript"
+
+@app.get("/api/health")
+def health():
+    return {
+        "status": "ok",
+        "service": "NOVA",
+        "version": "4.2.0",
+        "gemini_configured": gemini_client is not None,
+        "gemini_model": GEMINI_MODEL,
+        "gemini_timeout_ms": GEMINI_TIMEOUT_MS,
+        "gemini_max_output_tokens": GEMINI_MAX_OUTPUT,
+    }
+
+
+@app.get("/api/status")
+def status():
+    return {
+        "status": "online",
+        "service": "NOVA",
+        "version": "4.2.0",
+        "gemini": gemini_client is not None,
+        "model": GEMINI_MODEL,
+    }
+
+
+@app.get("/api/weather")
+def weather_endpoint(city: str = "Grenoble"):
+    data = get_weather(city)
+    if not data:
+        return JSONResponse({"error": "Météo indisponible"}, status_code=503)
+    return data
+
+
+@app.get("/api/market")
+def market_endpoint(symbol: str = "AAPL"):
+    data = get_market(symbol.upper())
+    if not data:
+        return JSONResponse({"error": "Marché indisponible"}, status_code=503)
+    return data
+
+
+@app.post("/api/chat")
+def chat(payload: ChatRequest):
+    text = payload.text.strip()
+
+    # 1. Actions déterministes : zéro appel Gemini.
+    action = open_action(text)
+    if action:
+        remember("user", text)
+        label = action["label"]
+        device = action["device"]
+
+        if device == "pc":
+            reply = (
+                f"Je peux préparer l'ouverture de {label} sur le PC, "
+                "mais un agent NOVA local doit être actif sur le PC pour lancer une application native."
+            )
+        else:
+            reply = f"J'ouvre {label}."
+
+        remember("assistant", reply)
+        return {"reply": reply, "action": action}
+
+    # 2. Météo : API directe.
+    if wants_weather(text):
+        city = extract_city(text)
+        data = get_weather(city)
+        if data:
+            reply = (
+                f"À {data['city']}, il fait {data['temperature']} °C. "
+                f"{data['description']}, humidité {data['humidity']} %."
+            )
+            remember("user", text)
+            remember("assistant", reply)
+            return {"reply": reply, "action": {"type": "weather", "data": data}}
+
+    # 3. Marchés : API directe.
+    if wants_market(text):
+        symbol = None
+        lowered = text.lower()
+        for name, ticker in MARKETS.items():
+            if name in lowered or ticker.lower() in lowered:
+                symbol = ticker
+                break
+        symbol = symbol or "AAPL"
+
+        data = get_market(symbol)
+        if data and data.get("price") is not None:
+            pct = data.get("change_percent")
+            change_text = f"{pct:+.2f} %" if pct is not None else "variation indisponible"
+            reply = f"{symbol} est à {data['price']} {data['currency']} ({change_text})."
+            remember("user", text)
+            remember("assistant", reply)
+            return {"reply": reply, "action": {"type": "market", "data": data}}
+
+    # 4. Heure : zéro appel Gemini.
+    if wants_time(text):
+        now = datetime.now()
+        reply = f"Il est {now.strftime('%H:%M')}."
+        remember("user", text)
+        remember("assistant", reply)
+        return {"reply": reply}
+
+    # 5. Conversation locale ultra-rapide pour les phrases simples.
+    simple_patterns = [
+        r"^(salut|bonjour|bonsoir|hello|hey|coucou)[!. ]*$",
+        r"^(merci|merci beaucoup)[!. ]*$",
+        r"^(ça va|ca va|comment ça va|comment ca va)[?! .]*$",
+        r"^(ok|okay|d'accord|daccord)[!. ]*$",
+    ]
+    if any(re.match(pattern, text.lower()) for pattern in simple_patterns):
+        reply = local_conversation(text)
+        remember("user", text)
+        remember("assistant", reply)
+        return {"reply": reply}
+
+    # 6. Mode rapide : moteur local en priorité pour éviter d'attendre Gemini.
+    if payload.fast:
+        reply = local_conversation(text)
+        remember("user", text)
+        remember("assistant", reply)
+        return {
+            "reply": reply,
+            "fast_local": True,
+            "note": "Mode rapide : aucune requête Gemini pour cette réponse.",
+        }
+
+    # 7. Gemini.
+    remember("user", text)
+    reply = ask_gemini(text, payload.fast)
+
+    # 8. Fallback local : jamais de message "consulte les logs" pour l'utilisateur.
+    if not reply:
+        reply = local_conversation(text)
+        remember("assistant", reply)
+        return {
+            "reply": reply,
+            "fallback": True,
+            "gemini_error": True,
+        }
+
+    remember("assistant", reply)
+    return {"reply": reply, "gemini": True}
+
+
+# ============================================================
+# LANCEMENT LOCAL
+# ============================================================
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "server:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000")),
+        reload=False,
     )
