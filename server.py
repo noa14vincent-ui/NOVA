@@ -32,6 +32,7 @@ GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "15000"))
 GEMINI_MAX_OUTPUT = int(os.getenv("GEMINI_MAX_OUTPUT", "600"))
 
 app = FastAPI(title="NOVA", version="4.2.0")
+app.include_router(apps_router)
 
 gemini_client = None
 if genai and GEMINI_API_KEY:
