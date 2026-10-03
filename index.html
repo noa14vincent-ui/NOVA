@@ -155,6 +155,7 @@ button,input{font:inherit;color-scheme:dark}
 
 <script>
 const state = { quick:true, voice:true, listening:false };
+const IS_PC = !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const $ = id => document.getElementById(id);
 const input=$('input'), messages=$('messages'), emptyState=$('emptyState'), chatPanel=$('chatPanel'),
       micBtn=$('micBtn'), sendBtn=$('sendBtn'), quickBtn=$('quickBtn'), voiceBtn=$('voiceBtn'),
@@ -235,7 +236,7 @@ async function sendText(raw){
     const r = await fetch('/api/chat', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
-      body:JSON.stringify({ text:text, device:'iphone', fast:state.quick })
+      body:JSON.stringify({ text:text, device:IS_PC ? 'pc' : 'iphone', fast:state.quick })
     });
 
     const d = await r.json();
@@ -262,18 +263,41 @@ async function sendText(raw){
   }
 }
 
+/* ===== OUVERTURE D'APPLI (iPhone) ===== */
+function goToApp(a){
+  if(a.ios_url){
+    location.href = a.ios_url;
+    /* si l'appli n'est pas installée, la page reste visible : on ouvre le site */
+    setTimeout(() => { if(!document.hidden) location.href = a.url; }, 1200);
+  }else{
+    location.href = a.url;
+  }
+}
+
+/* Bouton cliquable : un vrai appui est toujours autorisé par iOS */
+function addOpenButton(a){
+  const row = document.createElement('div');
+  row.className = 'row nova';
+  const link = document.createElement('a');
+  link.className = 'toggle on';
+  link.href = a.ios_url || a.url;
+  link.textContent = 'OUVRIR ' + String(a.label || '').toUpperCase();
+  link.style.cssText = 'text-decoration:none;padding:0 16px';
+  link.addEventListener('click', () => {
+    if(a.ios_url) setTimeout(() => { if(!document.hidden) location.href = a.url; }, 1200);
+  });
+  row.appendChild(link);
+  messages.appendChild(row);
+  chatPanel.scrollTop = chatPanel.scrollHeight;
+}
+
 /* ===== ACTIONS DU SERVEUR ===== */
 function handleAction(a){
   if(!a) return;
 
-  if(a.type === 'open_url' && a.device === 'iphone' && a.url){
-    const link = document.createElement('a');
-    link.href = a.url;
-    link.target = '_self';
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    try{ link.click(); }catch(e){ console.warn('Ouverture du lien impossible', e); }
-    setTimeout(() => { try{ link.remove(); }catch(e){} }, 1500);
+  if(a.type === 'open_url' && !IS_PC && a.url){
+    addOpenButton(a);
+    goToApp(a);
     return;
   }
 
