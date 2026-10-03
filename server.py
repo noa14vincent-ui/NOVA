@@ -615,29 +615,14 @@ def market_endpoint(symbol: str = "AAPL"):
     if not data:
         return JSONResponse({"error": "Marché indisponible"}, status_code=503)
     return data
-
-
-@app.post("/api/chat")
-def chat(payload: ChatRequest):
-    text = payload.text.strip()
-
-    # 1. Actions déterministes : zéro appel Gemini.
-    action = open_action(text)
-    if action:
+    
+    # 1. Ouverture d'applis (téléphone ou PC) : zéro appel Gemini.
+    opened = try_open(text, payload.device)
+    if opened:
         remember("user", text)
-        label = action["label"]
-        device = action["device"]
-
-        if device == "pc":
-            reply = (
-                f"Je peux préparer l'ouverture de {label} sur le PC, "
-                "mais un agent NOVA local doit être actif sur le PC pour lancer une application native."
-            )
-        else:
-            reply = f"J'ouvre {label}."
-
-        remember("assistant", reply)
-        return {"reply": reply, "action": action}
+        remember("assistant", opened["reply"])
+        return opened
+   
 
     # 2. Météo : API directe.
     if wants_weather(text):
