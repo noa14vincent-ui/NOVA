@@ -705,12 +705,11 @@ def chat(payload: ChatRequest):
     remember("user", text)
     reply = ask_gemini(text, payload.fast)
 
-    # 8. Fallback local : jamais de message "consulte les logs" pour l'utilisateur.
+        # 8. Si Gemini échoue, on le dit clairement.
     if not reply:
-        reply = local_conversation(text)
-        remember("assistant", reply)
+        remember("assistant", "Gemini indisponible")
         return {
-            "reply": reply,
+            "reply": "Mon cerveau Gemini est indisponible pour le moment (quota atteint). Réessaie plus tard.",
             "fallback": True,
             "gemini_error": True,
         }
