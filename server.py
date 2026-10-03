@@ -28,8 +28,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 
 # Gemini: court timeout + 1 seule tentative.
-GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "9000"))
-GEMINI_MAX_OUTPUT = int(os.getenv("GEMINI_MAX_OUTPUT", "300"))
+GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "15000"))
+GEMINI_MAX_OUTPUT = int(os.getenv("GEMINI_MAX_OUTPUT", "600"))
 
 app = FastAPI(title="NOVA", version="4.2.0")
 
