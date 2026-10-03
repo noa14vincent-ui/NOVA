@@ -530,7 +530,7 @@ Nouvelle demande de l'utilisateur :
 class ChatRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     fast: bool = False
-     device: str = "iphone"
+    device: str = "iphone"
 
 
 def wants_weather(text: str) -> bool:
