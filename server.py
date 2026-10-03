@@ -3,13 +3,14 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote_plus
 
 import requests
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
+
 from apps import router as apps_router, try_open
+
 try:
     from google import genai
     from google.genai import types
@@ -17,9 +18,15 @@ except Exception:
     genai = None
     types = None
 
+try:
+    from zoneinfo import ZoneInfo
+    PARIS = ZoneInfo("Europe/Paris")
+except Exception:
+    PARIS = None
+
 
 # ============================================================
-# NOVA 4.2 — serveur optimisé
+# NOVA 4.3 — serveur
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -27,11 +34,11 @@ BASE_DIR = Path(__file__).resolve().parent
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest").strip()
 
-# Gemini: court timeout + 1 seule tentative.
+# Google exige un délai minimum de 10 s.
 GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "15000"))
 GEMINI_MAX_OUTPUT = int(os.getenv("GEMINI_MAX_OUTPUT", "600"))
 
-app = FastAPI(title="NOVA", version="4.2.0")
+app = FastAPI(title="NOVA", version="4.3.0")
 app.include_router(apps_router)
 
 gemini_client = None
@@ -223,89 +230,6 @@ def local_conversation(text: str) -> str:
 
 
 # ============================================================
-# COMMANDES
-# ============================================================
-
-OPEN_WORDS = (
-    "ouvre", "ouvrir", "lance", "lancer", "démarre", "demarre",
-    "démarrer", "demarrer", "va sur", "aller sur", "mets", "met",
-    "accède", "accede", "affiche"
-)
-
-APP_COMMANDS = {
-    "netflix": ("Netflix", "https://www.netflix.com/"),
-    "youtube": ("YouTube", "https://www.youtube.com/"),
-    "spotify": ("Spotify", "https://open.spotify.com/"),
-    "discord": ("Discord", "https://discord.com/app"),
-    "instagram": ("Instagram", "https://www.instagram.com/"),
-    "tiktok": ("TikTok", "https://www.tiktok.com/"),
-    "chatgpt": ("ChatGPT", "https://chatgpt.com/"),
-    "gmail": ("Gmail", "https://mail.google.com/"),
-    "google": ("Google", "https://www.google.com/"),
-    "github": ("GitHub", "https://github.com/"),
-    "brawl stars": ("Brawl Stars", "https://link.brawlstars.com/"),
-    "brawl": ("Brawl Stars", "https://link.brawlstars.com/"),
-    "clash royale": ("Clash Royale", "https://link.clashroyale.com/"),
-    "clash of clans": ("Clash of Clans", "https://link.clashofclans.com/"),
-    "roblox": ("Roblox", "https://www.roblox.com/"),
-    "minecraft": ("Minecraft", "https://www.minecraft.net/"),
-    "steam": ("Steam", "https://store.steampowered.com/"),
-    "twitch": ("Twitch", "https://www.twitch.tv/"),
-    "prime video": ("Prime Video", "https://www.primevideo.com/"),
-    "disney": ("Disney+", "https://www.disneyplus.com/"),
-    "disney+": ("Disney+", "https://www.disneyplus.com/"),
-    "max": ("Max", "https://www.max.com/"),
-    "google maps": ("Google Maps", "https://maps.google.com/"),
-    "maps": ("Google Maps", "https://maps.google.com/"),
-    "wikipedia": ("Wikipedia", "https://www.wikipedia.org/"),
-    "reddit": ("Reddit", "https://www.reddit.com/"),
-    "linkedin": ("LinkedIn", "https://www.linkedin.com/"),
-}
-
-
-def find_app_command(text: str):
-    t = text.lower().strip()
-    if not any(t.startswith(word) or f" {word} " in f" {t} " for word in OPEN_WORDS):
-        return None
-
-    # Longest first prevents "clash" or "disney" from winning over full names.
-    for key in sorted(APP_COMMANDS, key=len, reverse=True):
-        if key in t:
-            label, url = APP_COMMANDS[key]
-            return label, url
-    return None
-
-
-def detect_device(text: str) -> str:
-    t = text.lower()
-    if re.search(r"\b(sur le pc|depuis le pc|sur mon pc|sur ordinateur|sur l'ordinateur|sur ordinateur)\b", t):
-        return "pc"
-    if re.search(r"\b(sur mon tel|sur le tel|sur mon téléphone|sur le téléphone|sur iphone|sur mon iphone|sur le téléphone)\b", t):
-        return "iphone"
-    return "iphone"
-
-
-def open_action(text: str):
-    found = find_app_command(text)
-    if not found:
-        return None
-
-    label, url = found
-    device = detect_device(text)
-
-    # iPhone: HTTPS URL is intentionally used. Native apps can take over
-    # through their Universal Links when configured; otherwise Safari opens it.
-    return {
-        "type": "open_url",
-        "url": url,
-        "fallback_url": url,
-        "device": device,
-        "label": label,
-        "app_first": device == "iphone",
-    }
-
-
-# ============================================================
 # MÉTÉO
 # ============================================================
 
@@ -426,7 +350,7 @@ def get_market(symbol: str):
             url,
             params={"range": "1d", "interval": "5m"},
             timeout=5,
-            headers={"User-Agent": "NOVA/4.2"},
+            headers={"User-Agent": "NOVA/4.3"},
         )
         response.raise_for_status()
         result = response.json()["chart"]["result"][0]
@@ -454,7 +378,7 @@ def get_market(symbol: str):
 
 
 # ============================================================
-# GEMINI RAPIDE
+# GEMINI
 # ============================================================
 
 def ask_gemini(text: str, fast: bool = False) -> str | None:
@@ -462,7 +386,6 @@ def ask_gemini(text: str, fast: bool = False) -> str | None:
         print("⚠️ Gemini indisponible : client non initialisé")
         return None
 
-    # On limite fortement l'historique envoyé pour éviter de ralentir chaque appel.
     hist = history_text()
     if len(hist) > 3500:
         hist = hist[-3500:]
@@ -519,7 +442,6 @@ Nouvelle demande de l'utilisateur :
         print(f"❌ Gemini erreur après {elapsed:.2f}s")
         print(f"   Type : {type(error).__name__}")
         print(f"   Message : {error!s}")
-        print(f"   Représentation : {error!r}")
         return None
 
 
@@ -558,7 +480,12 @@ def root():
     index = BASE_DIR / "index.html"
     if index.exists():
         return FileResponse(index)
-    return JSONResponse({"service": "NOVA", "version": "4.2.0"})
+    return JSONResponse({"service": "NOVA", "version": "4.3.0"})
+
+
+@app.get("/index.html")
+def index_html():
+    return root()
 
 
 @app.get("/manifest.webmanifest")
@@ -582,7 +509,7 @@ def health():
     return {
         "status": "ok",
         "service": "NOVA",
-        "version": "4.2.0",
+        "version": "4.3.0",
         "gemini_configured": gemini_client is not None,
         "gemini_model": GEMINI_MODEL,
         "gemini_timeout_ms": GEMINI_TIMEOUT_MS,
@@ -595,7 +522,7 @@ def status():
     return {
         "status": "online",
         "service": "NOVA",
-        "version": "4.2.0",
+        "version": "4.3.0",
         "gemini": gemini_client is not None,
         "model": GEMINI_MODEL,
     }
@@ -615,14 +542,18 @@ def market_endpoint(symbol: str = "AAPL"):
     if not data:
         return JSONResponse({"error": "Marché indisponible"}, status_code=503)
     return data
-    
+
+
+@app.post("/api/chat")
+def chat(payload: ChatRequest):
+    text = payload.text.strip()
+
     # 1. Ouverture d'applis (téléphone ou PC) : zéro appel Gemini.
     opened = try_open(text, payload.device)
     if opened:
         remember("user", text)
         remember("assistant", opened["reply"])
         return opened
-   
 
     # 2. Météo : API directe.
     if wants_weather(text):
@@ -656,9 +587,9 @@ def market_endpoint(symbol: str = "AAPL"):
             remember("assistant", reply)
             return {"reply": reply, "action": {"type": "market", "data": data}}
 
-    # 4. Heure : zéro appel Gemini.
+    # 4. Heure (heure de Paris) : zéro appel Gemini.
     if wants_time(text):
-        now = datetime.now()
+        now = datetime.now(PARIS) if PARIS else datetime.now()
         reply = f"Il est {now.strftime('%H:%M')}."
         remember("user", text)
         remember("assistant", reply)
@@ -692,11 +623,11 @@ def market_endpoint(symbol: str = "AAPL"):
     remember("user", text)
     reply = ask_gemini(text, payload.fast)
 
-        # 8. Si Gemini échoue, on le dit clairement.
+    # 8. Si Gemini échoue, on le dit clairement.
     if not reply:
         remember("assistant", "Gemini indisponible")
         return {
-            "reply": "Mon cerveau Gemini est indisponible pour le moment (quota atteint). Réessaie plus tard.",
+            "reply": "Mon cerveau Gemini est indisponible pour le moment (quota atteint ou erreur). Réessaie plus tard.",
             "fallback": True,
             "gemini_error": True,
         }
@@ -704,18 +635,6 @@ def market_endpoint(symbol: str = "AAPL"):
     remember("assistant", reply)
     return {"reply": reply, "gemini": True}
 
-@app.get("/api/gemini-test")
-def gemini_test():
-    if gemini_client is None:
-        return {"ok": False, "error": "Client Gemini non initialisé (clé absente ou invalide ?)"}
-    try:
-        r = gemini_client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents="Dis bonjour en 3 mots.",
-        )
-        return {"ok": True, "model": GEMINI_MODEL, "reply": r.text}
-    except Exception as e:
-        return {"ok": False, "model": GEMINI_MODEL, "type": type(e).__name__, "error": str(e)}
 
 # ============================================================
 # LANCEMENT LOCAL
