@@ -718,6 +718,18 @@ def chat(payload: ChatRequest):
     remember("assistant", reply)
     return {"reply": reply, "gemini": True}
 
+@app.get("/api/gemini-test")
+def gemini_test():
+    if gemini_client is None:
+        return {"ok": False, "error": "Client Gemini non initialisé (clé absente ou invalide ?)"}
+    try:
+        r = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents="Dis bonjour en 3 mots.",
+        )
+        return {"ok": True, "model": GEMINI_MODEL, "reply": r.text}
+    except Exception as e:
+        return {"ok": False, "model": GEMINI_MODEL, "type": type(e).__name__, "error": str(e)}
 
 # ============================================================
 # LANCEMENT LOCAL
