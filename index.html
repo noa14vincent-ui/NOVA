@@ -193,33 +193,12 @@ function addMessage(role, text){
   chatPanel.scrollTop = chatPanel.scrollHeight;
 }
 
-/* ===== VOIX ===== */
-function getBestFrenchVoice(){
-  if(!('speechSynthesis' in window)) return null;
-  const fr = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('fr'));
-  if(!fr.length) return null;
-  const names = ['amélie','amelie','audrey','julie','sophie','marie','alice','claire','camille','virginie','denise','hortense','éloïse','eloise','élise','elise','céline','celine','female','femme'];
-  const female = fr.find(v => names.some(n => (v.name||'').toLowerCase().includes(n)));
-  return female || fr[0];
-}
-
-function speak(text){
-  if(!state.voice || !('speechSynthesis' in window) || !text) return;
-  try{
-    const synth = window.speechSynthesis;
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const voice = getBestFrenchVoice();
-    u.lang = 'fr-FR';
-    if(voice) u.voice = voice;
-    u.rate = 0.88; u.pitch = 1.04; u.volume = 1;
-    synth.speak(u);
-  }catch(err){ console.warn('Synthèse vocale indisponible', err); }
-}
-
-if('speechSynthesis' in window){
-  speechSynthesis.addEventListener('voiceschanged', () => speechSynthesis.getVoices());
-}
+/* ===== VOIX GEMINI TTS ===== */
+let currentAudio=null, currentAudioUrl=null;
+function getBestFrenchVoice(){if(!('speechSynthesis' in window))return null;const fr=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'));return fr[0]||null;}
+function browserSpeak(text){if(!state.voice||!('speechSynthesis' in window)||!text)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=getBestFrenchVoice();u.lang='fr-FR';if(v)u.voice=v;u.rate=.92;u.pitch=1.02;u.volume=1;speechSynthesis.speak(u);}catch(e){}}
+async function speak(text){if(!state.voice||!text)return;try{speechSynthesis?.cancel();currentAudio?.pause();if(currentAudioUrl)URL.revokeObjectURL(currentAudioUrl);}catch(e){}try{setState('NOVA PARLE',true);statusText.textContent='VOIX IA…';const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});if(!r.ok)throw Error('TTS '+r.status);const blob=await r.blob();currentAudioUrl=URL.createObjectURL(blob);currentAudio=new Audio(currentAudioUrl);currentAudio.onended=()=>{URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null;currentAudio=null;setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';};currentAudio.onerror=()=>{browserSpeak(text);setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';};await currentAudio.play();}catch(e){console.warn(e);browserSpeak(text);setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';}}
+if('speechSynthesis' in window)speechSynthesis.addEventListener('voiceschanged',()=>speechSynthesis.getVoices());
 
 /* ===== ENVOI MESSAGE ===== */
 async function sendText(raw){
@@ -245,7 +224,7 @@ async function sendText(raw){
     const reply = d.reply || d.text || "Je n'ai pas de réponse.";
 
     addMessage('nova', reply);
-    speak(reply);
+    await speak(reply);
 
     try{ handleAction(d.action); }
     catch(err){ console.warn('Action impossible', err); }
