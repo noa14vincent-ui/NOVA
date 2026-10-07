@@ -106,7 +106,7 @@ button,input{font:inherit;color-scheme:dark}
 </section>
 
 <section class="panel chat-panel" id="chatPanel">
-  <div class="empty" id="emptyState">NOVA attend une commande.<br>Parle, écris ou utilise le mode rapide.</div>
+  <div class="empty" id="emptyState">NOVA attend une commande.<br>Parle ou écris pour commencer une conversation.</div>
   <div id="messages"></div>
 </section>
 
@@ -121,7 +121,6 @@ button,input{font:inherit;color-scheme:dark}
     </button>
   </div>
   <div class="controls">
-    <button class="toggle on" id="quickBtn">MODE RAPIDE : ON</button>
     <button class="toggle on" id="voiceBtn">VOIX : ON</button>
   </div>
 </section>
@@ -154,11 +153,11 @@ button,input{font:inherit;color-scheme:dark}
 <div class="toast" id="toast"></div>
 
 <script>
-const state = { quick:true, voice:true, listening:false };
+const state = { voice:true, listening:false };
 const IS_PC = !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const $ = id => document.getElementById(id);
 const input=$('input'), messages=$('messages'), emptyState=$('emptyState'), chatPanel=$('chatPanel'),
-      micBtn=$('micBtn'), sendBtn=$('sendBtn'), quickBtn=$('quickBtn'), voiceBtn=$('voiceBtn'),
+      micBtn=$('micBtn'), sendBtn=$('sendBtn'), voiceBtn=$('voiceBtn'),
       stateText=$('stateText'), statusText=$('statusText'), toast=$('toast');
 
 /* Symboles Yahoo Finance pour les boutons bourse */
@@ -236,7 +235,7 @@ async function sendText(raw){
     const r = await fetch('/api/chat', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
-      body:JSON.stringify({ text:text, device:IS_PC ? 'pc' : 'iphone', fast:state.quick })
+      body:JSON.stringify({ text:text, device:IS_PC ? 'pc' : 'iphone', fast:false })
     });
 
     const d = await r.json();
@@ -308,13 +307,6 @@ function handleAction(a){
 /* ===== ÉVÉNEMENTS ===== */
 input.addEventListener('keydown', e => { if(e.key === 'Enter') sendText(input.value); });
 sendBtn.addEventListener('click', () => sendText(input.value));
-
-quickBtn.addEventListener('click', () => {
-  state.quick = !state.quick;
-  quickBtn.textContent = 'MODE RAPIDE : ' + (state.quick ? 'ON' : 'OFF');
-  quickBtn.classList.toggle('on', state.quick);
-  toastMsg(state.quick ? 'Mode rapide activé' : 'Mode rapide désactivé');
-});
 
 voiceBtn.addEventListener('click', () => {
   state.voice = !state.voice;
