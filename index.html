@@ -80,6 +80,38 @@ button,input{font:inherit;color-scheme:dark}
 .footer{padding:14px 0 22px;text-align:center;color:#8ea4b7;font-size:11px;line-height:1.5;letter-spacing:.04em;opacity:.85}
 .toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,20px);padding:9px 13px;border:1px solid rgba(103,232,249,.28);border-radius:12px;background:rgba(7,17,31,.96);color:#f4f8ff;font-size:13px;line-height:1.5;opacity:0;pointer-events:none;transition:.22s;z-index:20}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* Paramètres et thèmes personnalisables */
+.settings-btn{width:46px;flex:0 0 46px;padding:0}
+.settings-btn svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.settings-backdrop{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);display:grid;place-items:center;padding:16px}
+.settings-backdrop[hidden]{display:none}
+.settings-modal{width:min(440px,100%);max-height:90dvh;overflow:auto;padding:20px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,#0b1f35,#080d1b 65%,#17102b);box-shadow:0 25px 80px rgba(0,0,0,.5)}
+.settings-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.settings-head h2{font-size:22px;margin:4px 0 0}.settings-close{width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:#0b1423;color:#fff;font-size:25px;cursor:pointer}
+.setting-label{display:block;margin:15px 0 7px;color:#c7d7e7;font-size:12px;letter-spacing:.1em;text-transform:uppercase}.setting-select{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:#081321;color:#f4f8ff}
+.theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.theme-choice{display:flex;align-items:center;gap:8px;padding:9px 7px;border:1px solid var(--line);border-radius:10px;background:#091524;color:#eaf5ff;font-size:13px;cursor:pointer}.theme-choice span{width:22px;height:22px;border-radius:50%;flex-shrink:0;box-shadow:0 0 12px rgba(255,255,255,.12)}.theme-choice.selected{border-color:var(--cyan);box-shadow:0 0 14px color-mix(in srgb,var(--cyan) 24%,transparent)}
+.settings-save{width:100%;margin-top:20px;padding:12px;border:1px solid var(--cyan);border-radius:12px;background:linear-gradient(110deg,var(--blue),var(--violet));color:#06101b;font-weight:800;letter-spacing:.1em;cursor:pointer}.settings-note{font-size:11px;color:#93a8bc;text-align:center;margin:12px 0 0}
+body[data-theme="red"]{--blue:#fb7185;--cyan:#fda4af;--violet:#ef4444;--line:#47202b}body[data-theme="orange"]{--blue:#fbbf24;--cyan:#fdba74;--violet:#f97316;--line:#49311c}body[data-theme="green"]{--blue:#4ade80;--cyan:#6ee7b7;--violet:#14b8a6;--line:#174437}body[data-theme="purple"]{--blue:#c084fc;--cyan:#d8b4fe;--violet:#7c3aed;--line:#392254}body[data-theme="pink"]{--blue:#f9a8d4;--cyan:#fbcfe8;--violet:#ec4899;--line:#4a243c}
+body[data-theme="red"] .core-ring,body[data-theme="orange"] .core-ring,body[data-theme="green"] .core-ring,body[data-theme="purple"] .core-ring,body[data-theme="pink"] .core-ring{border-color:color-mix(in srgb,var(--blue) 55%,transparent);background:radial-gradient(circle,color-mix(in srgb,var(--cyan) 15%,transparent),transparent 45%)}
+/* Le thème recolore maintenant tout le fond de l'application, pas seulement les boutons. */
+body{background-color:#030712;background-image:radial-gradient(ellipse at 12% 0%,rgba(14,116,144,.28),transparent 42%),radial-gradient(ellipse at 90% 48%,rgba(91,33,182,.2),transparent 46%),linear-gradient(160deg,#030712,#071426 58%,#100a20);background-attachment:fixed;transition:background-color .35s ease,background-image .35s ease}
+.grid{background:radial-gradient(circle at 50% 18%,color-mix(in srgb,var(--cyan) 13%,transparent),transparent 32%),linear-gradient(color-mix(in srgb,var(--cyan) 4%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--cyan) 4%,transparent) 1px,transparent 1px);background-size:auto,34px 34px,34px 34px;transition:background .35s ease}
+body[data-theme="blue"]{background-image:radial-gradient(ellipse at 12% 0%,rgba(14,116,144,.34),transparent 42%),radial-gradient(ellipse at 90% 48%,rgba(91,33,182,.25),transparent 46%),linear-gradient(160deg,#020817,#071b30 58%,#100a20)}
+body[data-theme="red"]{background-image:radial-gradient(ellipse at 8% 0%,rgba(190,24,93,.4),transparent 44%),radial-gradient(ellipse at 92% 45%,rgba(127,29,29,.38),transparent 48%),linear-gradient(155deg,#10050b,#260b18 55%,#10070d)}
+body[data-theme="orange"]{background-image:radial-gradient(ellipse at 8% 0%,rgba(217,119,6,.42),transparent 44%),radial-gradient(ellipse at 92% 45%,rgba(194,65,12,.35),transparent 48%),linear-gradient(155deg,#100a04,#291609 55%,#120904)}
+body[data-theme="green"]{background-image:radial-gradient(ellipse at 8% 0%,rgba(5,150,105,.38),transparent 44%),radial-gradient(ellipse at 92% 45%,rgba(13,148,136,.34),transparent 48%),linear-gradient(155deg,#03100c,#08261d 55%,#04130f)}
+body[data-theme="purple"]{background-image:radial-gradient(ellipse at 8% 0%,rgba(126,34,206,.42),transparent 44%),radial-gradient(ellipse at 92% 45%,rgba(91,33,182,.4),transparent 48%),linear-gradient(155deg,#0b0612,#1c0d30 55%,#090512)}
+body[data-theme="pink"]{background-image:radial-gradient(ellipse at 8% 0%,rgba(219,39,119,.4),transparent 44%),radial-gradient(ellipse at 92% 45%,rgba(157,23,77,.35),transparent 48%),linear-gradient(155deg,#100610,#2b0c22 55%,#100610)}
+body[data-theme="red"] .panel,body[data-theme="red"] .settings-modal{background:linear-gradient(135deg,rgba(65,15,32,.94),rgba(20,7,15,.97) 58%,rgba(65,12,24,.9))}
+body[data-theme="orange"] .panel,body[data-theme="orange"] .settings-modal{background:linear-gradient(135deg,rgba(66,34,8,.94),rgba(20,11,4,.97) 58%,rgba(68,28,7,.9))}
+body[data-theme="green"] .panel,body[data-theme="green"] .settings-modal{background:linear-gradient(135deg,rgba(7,54,39,.94),rgba(3,15,12,.97) 58%,rgba(5,52,43,.9))}
+body[data-theme="purple"] .panel,body[data-theme="purple"] .settings-modal{background:linear-gradient(135deg,rgba(43,18,68,.94),rgba(11,7,20,.97) 58%,rgba(42,15,66,.9))}
+body[data-theme="pink"] .panel,body[data-theme="pink"] .settings-modal{background:linear-gradient(135deg,rgba(67,15,47,.94),rgba(20,6,16,.97) 58%,rgba(62,12,40,.9))}
+body[data-theme="red"] .bubble{background:linear-gradient(135deg,rgba(69,17,35,.94),rgba(28,8,18,.92))}body[data-theme="orange"] .bubble{background:linear-gradient(135deg,rgba(73,39,9,.94),rgba(29,15,5,.92))}body[data-theme="green"] .bubble{background:linear-gradient(135deg,rgba(8,59,42,.94),rgba(5,23,17,.92))}body[data-theme="purple"] .bubble{background:linear-gradient(135deg,rgba(48,20,75,.94),rgba(17,9,29,.92))}body[data-theme="pink"] .bubble{background:linear-gradient(135deg,rgba(72,17,51,.94),rgba(29,8,21,.92))}
+body[data-theme="red"] .send-btn,body[data-theme="red"] .toggle.on,body[data-theme="red"] .icon-btn.active{background:linear-gradient(120deg,#9f1239,#ef4444,#be123c)}body[data-theme="orange"] .send-btn,body[data-theme="orange"] .toggle.on,body[data-theme="orange"] .icon-btn.active{background:linear-gradient(120deg,#92400e,#f97316,#b45309)}body[data-theme="green"] .send-btn,body[data-theme="green"] .toggle.on,body[data-theme="green"] .icon-btn.active{background:linear-gradient(120deg,#065f46,#10b981,#0f766e)}body[data-theme="purple"] .send-btn,body[data-theme="purple"] .toggle.on,body[data-theme="purple"] .icon-btn.active{background:linear-gradient(120deg,#581c87,#a855f7,#6d28d9)}body[data-theme="pink"] .send-btn,body[data-theme="pink"] .toggle.on,body[data-theme="pink"] .icon-btn.active{background:linear-gradient(120deg,#9d174d,#ec4899,#be185d)}
+body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
+@media(prefers-reduced-motion:reduce){.core-ring,.core-ring:before{animation:none}}
+
 @media (max-width:520px){
 .shell{padding-left:10px;padding-right:10px}
 .core-ring{width:128px;height:128px}
@@ -96,7 +128,10 @@ button,input{font:inherit;color-scheme:dark}
 <div class="shell">
 
 <header class="topbar">
-  <div class="brand"><div class="brand-mark"></div><div class="brand-name">NOVA</div></div>
+  <div style="display:flex;align-items:center;gap:12px;min-width:0">
+    <button class="icon-btn settings-btn" id="settingsBtn" aria-label="Ouvrir les paramètres" title="Paramètres"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"></path><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"></path></svg></button>
+    <div class="brand"><div class="brand-mark"></div><div class="brand-name">NOVA</div></div>
+  </div>
   <div class="status" id="statusText">SYSTÈME EN LIGNE</div>
 </header>
 
@@ -150,10 +185,36 @@ button,input{font:inherit;color-scheme:dark}
 <div class="footer">NOVA · interface mobile 2D · données météo / marché via services externes</div>
 </div>
 
+<section class="settings-backdrop" id="settingsBackdrop" hidden>
+  <div class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settings-head"><div><div class="dash-title">CONFIGURATION</div><h2 id="settingsTitle">Paramètres NOVA</h2></div><button class="settings-close" id="settingsClose" aria-label="Fermer">×</button></div>
+    <label class="setting-label" for="voiceMode">Voix de NOVA</label>
+    <select id="voiceMode" class="setting-select">
+      <option value="natural">Voix IA naturelle (plus réaliste)</option>
+      <option value="instant">Voix instantanée du téléphone (plus rapide)</option>
+      <option value="off">Silencieux</option>
+    </select>
+    <label class="setting-label" for="motionMode">Animations</label>
+    <select id="motionMode" class="setting-select">
+      <option value="on">Fluides</option><option value="reduced">Réduites</option>
+    </select>
+    <div class="setting-label">Personnaliser les couleurs</div>
+    <div class="theme-options" id="themeOptions">
+      <button class="theme-choice" data-theme="blue" aria-label="Bleu cyan"><span style="background:linear-gradient(135deg,#38bdf8,#a78bfa)"></span>Bleu</button>
+      <button class="theme-choice" data-theme="red" aria-label="Rouge"><span style="background:linear-gradient(135deg,#fb7185,#ef4444)"></span>Rouge</button>
+      <button class="theme-choice" data-theme="orange" aria-label="Orange"><span style="background:linear-gradient(135deg,#fbbf24,#f97316)"></span>Orange</button>
+      <button class="theme-choice" data-theme="green" aria-label="Vert"><span style="background:linear-gradient(135deg,#4ade80,#14b8a6)"></span>Vert</button>
+      <button class="theme-choice" data-theme="purple" aria-label="Violet"><span style="background:linear-gradient(135deg,#c084fc,#7c3aed)"></span>Violet</button>
+      <button class="theme-choice" data-theme="pink" aria-label="Rose"><span style="background:linear-gradient(135deg,#f9a8d4,#ec4899)"></span>Rose</button>
+    </div>
+    <button class="settings-save" id="settingsSave">ENREGISTRER</button>
+    <p class="settings-note">Les préférences sont enregistrées sur cet appareil.</p>
+  </div>
+</section>
 <div class="toast" id="toast"></div>
 
 <script>
-const state = { voice:true, listening:false };
+const state = { voice:true, listening:false, voiceMode:'natural' };
 const IS_PC = !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const $ = id => document.getElementById(id);
 const input=$('input'), messages=$('messages'), emptyState=$('emptyState'), chatPanel=$('chatPanel'),
@@ -193,11 +254,12 @@ function addMessage(role, text){
   chatPanel.scrollTop = chatPanel.scrollHeight;
 }
 
-/* ===== VOIX GEMINI TTS ===== */
+/* ===== VOIX : IA naturelle ou voix instantanée ===== */
 let currentAudio=null, currentAudioUrl=null;
-function getBestFrenchVoice(){if(!('speechSynthesis' in window))return null;const fr=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'));return fr[0]||null;}
-function browserSpeak(text){if(!state.voice||!('speechSynthesis' in window)||!text)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const v=getBestFrenchVoice();u.lang='fr-FR';if(v)u.voice=v;u.rate=.92;u.pitch=1.02;u.volume=1;speechSynthesis.speak(u);}catch(e){}}
-async function speak(text){if(!state.voice||!text)return;try{speechSynthesis?.cancel();currentAudio?.pause();if(currentAudioUrl)URL.revokeObjectURL(currentAudioUrl);}catch(e){}try{setState('NOVA PARLE',true);statusText.textContent='VOIX IA…';const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});if(!r.ok)throw Error('TTS '+r.status);const blob=await r.blob();currentAudioUrl=URL.createObjectURL(blob);currentAudio=new Audio(currentAudioUrl);currentAudio.onended=()=>{URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null;currentAudio=null;setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';};currentAudio.onerror=()=>{browserSpeak(text);setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';};await currentAudio.play();}catch(e){console.warn(e);browserSpeak(text);setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';}}
+function getBestFrenchVoice(){if(!('speechSynthesis' in window))return null;const all=speechSynthesis.getVoices();return all.find(v=>v.lang&&v.lang.toLowerCase()==='fr-fr')||all.find(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'))||null;}
+function stopSpeech(){try{if('speechSynthesis' in window)speechSynthesis.cancel();if(currentAudio){currentAudio.pause();currentAudio.src='';currentAudio=null;}if(currentAudioUrl){URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null;}}catch(e){}}
+function browserSpeak(text){if(!state.voice||!('speechSynthesis' in window)||!text)return;try{const u=new SpeechSynthesisUtterance(text);const v=getBestFrenchVoice();u.lang='fr-FR';if(v)u.voice=v;u.rate=.96;u.pitch=1.0;u.volume=1;u.onend=()=>{setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';};speechSynthesis.speak(u);}catch(e){}}
+async function speak(text){if(!state.voice||!text||state.voiceMode==='off')return;stopSpeech();setState('NOVA PARLE',true);statusText.textContent=state.voiceMode==='instant'?'VOIX INSTANTANÉE':'VOIX IA…';if(state.voiceMode==='instant'){browserSpeak(text);return;}try{const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});if(!r.ok)throw Error('TTS '+r.status);const blob=await r.blob();currentAudioUrl=URL.createObjectURL(blob);currentAudio=new Audio(currentAudioUrl);currentAudio.preload='auto';currentAudio.onended=()=>{stopSpeech();setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE';};await currentAudio.play();}catch(e){console.warn('Voix IA indisponible, repli navigateur',e);browserSpeak(text);}}
 if('speechSynthesis' in window)speechSynthesis.addEventListener('voiceschanged',()=>speechSynthesis.getVoices());
 
 /* ===== ENVOI MESSAGE ===== */
@@ -224,13 +286,14 @@ async function sendText(raw){
     const reply = d.reply || d.text || "Je n'ai pas de réponse.";
 
     addMessage('nova', reply);
-    await speak(reply);
+    speak(reply); // Ne bloque plus le traitement de l'interface sur la génération audio.
 
     try{ handleAction(d.action); }
     catch(err){ console.warn('Action impossible', err); }
 
-    setState('VEILLE');
-    statusText.textContent = 'SYSTÈME EN LIGNE';
+    if(!state.voice || state.voiceMode==='off'){
+      setState('VEILLE'); statusText.textContent = 'SYSTÈME EN LIGNE';
+    }
 
   }catch(e){
     console.error(e);
@@ -289,11 +352,29 @@ sendBtn.addEventListener('click', () => sendText(input.value));
 
 voiceBtn.addEventListener('click', () => {
   state.voice = !state.voice;
+  state.voiceMode = state.voice ? (state.voiceMode==='off' ? 'natural' : state.voiceMode) : 'off';
+  $('voiceMode').value = state.voiceMode;
   voiceBtn.textContent = 'VOIX : ' + (state.voice ? 'ON' : 'OFF');
   voiceBtn.classList.toggle('on', state.voice);
-  if(!state.voice && 'speechSynthesis' in window) speechSynthesis.cancel();
+  if(!state.voice) stopSpeech();
+  saveSettings();
   toastMsg(state.voice ? 'Voix activée' : 'Voix désactivée');
 });
+
+/* ===== PARAMÈTRES PERSISTANTS ===== */
+const SETTINGS_KEY='nova-user-settings-v1';
+let chosenTheme='blue';
+function loadSettings(){try{const s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}');chosenTheme=s.theme||'blue';state.voiceMode=s.voiceMode||'natural';state.voice=state.voiceMode!=='off';$('voiceMode').value=state.voiceMode;$('motionMode').value=s.motionMode||'on';document.body.dataset.theme=chosenTheme;document.body.classList.toggle('reduced-motion',$('motionMode').value==='reduced');voiceBtn.textContent='VOIX : '+(state.voice?'ON':'OFF');voiceBtn.classList.toggle('on',state.voice);}catch(e){}}
+function saveSettings(){const s={theme:chosenTheme,voiceMode:state.voiceMode,motionMode:$('motionMode').value};try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(s));}catch(e){} }
+function setTheme(theme){chosenTheme=theme;document.body.dataset.theme=theme;document.querySelectorAll('.theme-choice').forEach(b=>b.classList.toggle('selected',b.dataset.theme===theme));}
+$('settingsBtn').addEventListener('click',()=>{$('settingsBackdrop').hidden=false;setTheme(chosenTheme);});
+$('settingsClose').addEventListener('click',()=>$('settingsBackdrop').hidden=true);
+$('settingsBackdrop').addEventListener('click',e=>{if(e.target===$('settingsBackdrop'))$('settingsBackdrop').hidden=true;});
+document.querySelectorAll('.theme-choice').forEach(b=>b.addEventListener('click',()=>setTheme(b.dataset.theme)));
+$('voiceMode').addEventListener('change',()=>{state.voiceMode=$('voiceMode').value;state.voice=state.voiceMode!=='off';voiceBtn.textContent='VOIX : '+(state.voice?'ON':'OFF');voiceBtn.classList.toggle('on',state.voice);if(!state.voice)stopSpeech();});
+$('motionMode').addEventListener('change',()=>document.body.classList.toggle('reduced-motion',$('motionMode').value==='reduced'));
+$('settingsSave').addEventListener('click',()=>{state.voiceMode=$('voiceMode').value;state.voice=state.voiceMode!=='off';setTheme(chosenTheme);document.body.classList.toggle('reduced-motion',$('motionMode').value==='reduced');voiceBtn.textContent='VOIX : '+(state.voice?'ON':'OFF');voiceBtn.classList.toggle('on',state.voice);saveSettings();$('settingsBackdrop').hidden=true;toastMsg('Paramètres enregistrés');});
+loadSettings();
 
 /* ===== RECONNAISSANCE VOCALE ===== */
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
