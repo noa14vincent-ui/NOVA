@@ -26,11 +26,11 @@ button,input{font:inherit;color-scheme:dark}
 .brand-name{letter-spacing:.24em;font-size:16px;font-weight:750;color:#f4f8ff}
 .status{font-size:12px;letter-spacing:.12em;color:#b9c9d8;text-transform:uppercase;text-shadow:0 0 12px rgba(103,232,249,.12)}
 .core{padding:22px 0 10px;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2}
-.core-ring{width:150px;height:150px;border-radius:50%;border:1px solid rgba(56,189,248,.4);display:grid;place-items:center;position:relative;background:radial-gradient(circle,rgba(103,232,249,.1),transparent 42%);animation:corePulse 3.2s ease-in-out infinite}
-.core-ring:before{content:"";position:absolute;inset:14px;border-radius:50%;border:1px solid rgba(167,139,250,.45);animation:spin 11s linear infinite}
-.core-ring:after{content:"N";font-size:40px;letter-spacing:.05em;color:var(--cyan);text-shadow:0 0 18px rgba(103,232,249,.5)}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes corePulse{0%,100%{box-shadow:0 0 32px rgba(56,189,248,.1),inset 0 0 24px rgba(56,189,248,.08)}50%{box-shadow:0 0 55px rgba(56,189,248,.27),0 0 90px rgba(167,139,250,.12),inset 0 0 32px rgba(56,189,248,.16)}}
+/* Emblème NOVA : anneau dégradé qui change doucement de couleur, sans pulsation ni rotation. */
+.core-ring{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;position:relative;border:2px solid transparent;background:linear-gradient(#050b18,#050b18) padding-box,linear-gradient(135deg,var(--blue),var(--violet),#f472b6,var(--cyan)) border-box;background-size:auto,300% 300%;animation:gradientDrift 12s ease-in-out infinite;box-shadow:0 0 34px rgba(56,189,248,.13)}
+.core-ring:before{content:"";position:absolute;inset:13px;border-radius:50%;border:1px solid color-mix(in srgb,var(--cyan) 38%,transparent);background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--cyan) 10%,transparent),transparent 70%)}
+.core-ring:after{content:"N";font-size:40px;letter-spacing:.02em;font-weight:800;background:linear-gradient(110deg,var(--cyan),var(--blue),var(--violet),var(--cyan));background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+@keyframes gradientDrift{0%,100%{background-position:0 0,0% 50%}50%{background-position:0 0,100% 50%}}
 .state{margin-top:13px;font-size:12px;letter-spacing:.16em;color:#b9c9d8;text-transform:uppercase}
 .state.active{color:var(--cyan);text-shadow:0 0 12px rgba(103,232,249,.32)}
 .panel{border:1px solid var(--line);border-radius:18px;position:relative;z-index:2;overflow:hidden;background:linear-gradient(135deg,rgba(11,31,53,.94),rgba(5,12,25,.96) 55%,rgba(24,15,53,.88));box-shadow:0 18px 55px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.035)}
@@ -53,7 +53,10 @@ button,input{font:inherit;color-scheme:dark}
 .icon-btn:hover::before,.send-btn:hover::before,.toggle:hover::before,.quick:hover::before{left:135%}
 .icon-btn:hover,.send-btn:hover,.toggle:hover,.quick:hover{border-color:rgba(103,232,249,.75);color:var(--cyan);box-shadow:0 0 20px rgba(56,189,248,.2),inset 0 1px 0 rgba(255,255,255,.1);transform:translateY(-2px)}
 .quick:active,.toggle:active,.icon-btn:active,.send-btn:active{transform:translateY(1px) scale(.98)}
-.icon-btn.active{border-color:rgba(56,189,248,.6);color:var(--cyan);animation:micGlow 1.4s ease-in-out infinite;background:linear-gradient(135deg,rgba(8,145,178,.95),rgba(37,99,235,.92),rgba(124,58,237,.9))}
+.icon-btn.active{border-color:var(--cyan);color:#fff;animation:none;background:linear-gradient(120deg,var(--blue),var(--violet),var(--cyan));box-shadow:0 0 16px color-mix(in srgb,var(--cyan) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.14)}
+/* Le micro reprend toujours le dégradé du thème choisi, même au repos. */
+#micBtn{border-color:color-mix(in srgb,var(--cyan) 65%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 82%,#07111f),color-mix(in srgb,var(--violet) 76%,#07111f),color-mix(in srgb,var(--cyan) 55%,#07111f));color:#fff}
+#micBtn:hover{border-color:var(--cyan);box-shadow:0 0 18px color-mix(in srgb,var(--cyan) 28%,transparent),inset 0 1px 0 rgba(255,255,255,.14);color:#fff}
 @keyframes micGlow{0%,100%{box-shadow:0 0 10px rgba(56,189,248,.3),inset 0 1px 0 rgba(255,255,255,.12)}50%{box-shadow:0 0 30px rgba(103,232,249,.7),0 0 55px rgba(56,189,248,.25),inset 0 1px 0 rgba(255,255,255,.16)}}
 .composer input{width:100%;border:0;outline:0;background:transparent;color:#f4f8ff;font-size:16px;line-height:1.5;padding:0 5px;min-width:0}
 .composer input::placeholder{color:#91a7ba;opacity:1}
@@ -80,6 +83,19 @@ button,input{font:inherit;color-scheme:dark}
 .footer{padding:14px 0 22px;text-align:center;color:#8ea4b7;font-size:11px;line-height:1.5;letter-spacing:.04em;opacity:.85}
 .toast{position:fixed;left:50%;bottom:92px;transform:translate(-50%,20px);padding:9px 13px;border:1px solid rgba(103,232,249,.28);border-radius:12px;background:rgba(7,17,31,.96);color:#f4f8ff;font-size:13px;line-height:1.5;opacity:0;pointer-events:none;transition:.22s;z-index:20}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* Écran d'attente NOVA affiché uniquement pendant une connexion à l'API. */
+.nova-loader{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:rgba(2,6,18,.97);backdrop-filter:blur(18px);opacity:1;visibility:visible;transition:opacity .28s ease,visibility .28s ease}
+.nova-loader[hidden]{display:none}
+.nova-loader-card{width:min(340px,100%);text-align:center;padding:30px 22px;border:1px solid rgba(103,232,249,.18);border-radius:24px;background:linear-gradient(145deg,rgba(8,24,43,.97),rgba(8,9,24,.98));box-shadow:0 24px 90px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.06)}
+.loader-orb{width:94px;height:94px;margin:0 auto 20px;border-radius:50%;display:grid;place-items:center;border:2px solid transparent;background:linear-gradient(#081324,#081324) padding-box,linear-gradient(130deg,var(--blue),var(--violet),#f472b6,var(--cyan)) border-box;background-size:auto,300% 300%;animation:gradientDrift 7s ease-in-out infinite;box-shadow:0 0 32px rgba(56,189,248,.16)}
+.loader-orb span{font-size:36px;font-weight:750;letter-spacing:.05em;background:linear-gradient(110deg,#67e8f9,#c4b5fd,#f9a8d4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.loader-title{font-size:19px;font-weight:750;letter-spacing:.24em;margin-bottom:6px}
+.loader-subtitle{font-size:13px;color:#a9bfd2;margin-bottom:22px}
+.loader-track{height:3px;overflow:hidden;border-radius:99px;background:rgba(148,163,184,.16)}
+.loader-track:after{content:"";display:block;width:38%;height:100%;border-radius:99px;background:linear-gradient(90deg,#38bdf8,#a78bfa,#f472b6);animation:loaderSweep 1.5s ease-in-out infinite}
+@keyframes loaderSweep{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
+.loader-caption{font-size:10px;letter-spacing:.16em;color:#7793ad;margin-top:15px;text-transform:uppercase}
 
 /* Paramètres et thèmes personnalisables */
 .settings-btn{width:46px;flex:0 0 46px;padding:0}
@@ -120,9 +136,9 @@ body[data-theme="red"] .bubble{background:linear-gradient(135deg,rgba(69,17,35,.
 .markdown-table tr:last-child td{border-bottom:0}.markdown-table th:last-child,.markdown-table td:last-child{border-right:0}
 .markdown-table tr:nth-child(even) td{background:rgba(255,255,255,.025)}
 
-body[data-theme="red"] .send-btn,body[data-theme="red"] .toggle.on,body[data-theme="red"] .icon-btn.active{background:linear-gradient(120deg,#9f1239,#ef4444,#be123c)}body[data-theme="orange"] .send-btn,body[data-theme="orange"] .toggle.on,body[data-theme="orange"] .icon-btn.active{background:linear-gradient(120deg,#92400e,#f97316,#b45309)}body[data-theme="green"] .send-btn,body[data-theme="green"] .toggle.on,body[data-theme="green"] .icon-btn.active{background:linear-gradient(120deg,#065f46,#10b981,#0f766e)}body[data-theme="purple"] .send-btn,body[data-theme="purple"] .toggle.on,body[data-theme="purple"] .icon-btn.active{background:linear-gradient(120deg,#581c87,#a855f7,#6d28d9)}body[data-theme="pink"] .send-btn,body[data-theme="pink"] .toggle.on,body[data-theme="pink"] .icon-btn.active{background:linear-gradient(120deg,#9d174d,#ec4899,#be185d)}
+body[data-theme="red"] #micBtn,body[data-theme="red"] .send-btn,body[data-theme="red"] .toggle.on,body[data-theme="red"] .icon-btn.active{background:linear-gradient(120deg,#9f1239,#ef4444,#be123c)}body[data-theme="orange"] #micBtn,body[data-theme="orange"] .send-btn,body[data-theme="orange"] .toggle.on,body[data-theme="orange"] .icon-btn.active{background:linear-gradient(120deg,#92400e,#f97316,#b45309)}body[data-theme="green"] #micBtn,body[data-theme="green"] .send-btn,body[data-theme="green"] .toggle.on,body[data-theme="green"] .icon-btn.active{background:linear-gradient(120deg,#065f46,#10b981,#0f766e)}body[data-theme="purple"] #micBtn,body[data-theme="purple"] .send-btn,body[data-theme="purple"] .toggle.on,body[data-theme="purple"] .icon-btn.active{background:linear-gradient(120deg,#581c87,#a855f7,#6d28d9)}body[data-theme="pink"] #micBtn,body[data-theme="pink"] .send-btn,body[data-theme="pink"] .toggle.on,body[data-theme="pink"] .icon-btn.active{background:linear-gradient(120deg,#9d174d,#ec4899,#be185d)}
 body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
-@media(prefers-reduced-motion:reduce){.core-ring,.core-ring:before{animation:none}}
+@media(prefers-reduced-motion:reduce){.core-ring,.core-ring:before,.brand-mark,.loader-orb,.loader-track:after{animation:none}}
 
 @media (max-width:520px){
 .shell{padding-left:10px;padding-right:10px}
@@ -133,10 +149,22 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 .status{font-size:10px}
 .value{font-size:25px}
 }
+/* Ajustement du halo du N : le cercle reste visible, les couleurs glissent lentement, sans pulsation ni changement de taille. */
+.core-ring{animation:gradientDrift 18s linear infinite!important;transform:none!important;filter:none!important;box-shadow:0 0 26px rgba(56,189,248,.12)!important}
+.core-ring:before,.core-ring:after{animation:none!important;transform:none!important}
 </style>
 </head>
 <body>
 <div class="grid"></div>
+<div class="nova-loader" id="novaLoader" hidden aria-live="polite" aria-label="Connexion à NOVA">
+  <div class="nova-loader-card">
+    <div class="loader-orb"><span>N</span></div>
+    <div class="loader-title">NOVA</div>
+    <div class="loader-subtitle" id="loaderSubtitle">Préparation de votre assistant…</div>
+    <div class="loader-track"></div>
+    <div class="loader-caption">Connexion sécurisée · veuillez patienter</div>
+  </div>
+</div>
 <div class="shell">
 
 <header class="topbar">
@@ -316,14 +344,27 @@ async function speak(text){if(!state.voice||!text||state.voiceMode==='off')retur
 if('speechSynthesis' in window)speechSynthesis.addEventListener('voiceschanged',()=>speechSynthesis.getVoices());
 
 /* ===== ENVOI MESSAGE ===== */
+let requestInProgress=false;
+function showNovaLoader(message='NOVA se connecte…'){
+  const loader=$('novaLoader'); if(!loader)return;
+  $('loaderSubtitle').textContent=message;
+  loader.hidden=false;
+  document.body.setAttribute('aria-busy','true');
+}
+function hideNovaLoader(){
+  const loader=$('novaLoader'); if(loader)loader.hidden=true;
+  document.body.removeAttribute('aria-busy');
+}
 async function sendText(raw){
   const text = (raw || '').trim();
-  if(!text) return;
+  if(!text || requestInProgress) return;
+  requestInProgress=true;
 
   input.value = '';
   addMessage('user', text);
   setState('TRAITEMENT', true);
   statusText.textContent = 'NOVA ANALYSE…';
+  showNovaLoader('NOVA prépare la connexion au serveur…');
 
   try{
     const r = await fetch('/api/chat', {
@@ -338,6 +379,7 @@ async function sendText(raw){
     /* CORRECTION : le serveur renvoie "reply", pas "text" */
     const reply = d.reply || d.text || "Je n'ai pas de réponse.";
 
+    hideNovaLoader();
     addMessage('nova', reply);
     speak(textForSpeech(reply)); // Lit les tableaux naturellement, sans réciter les séparateurs Markdown.
 
@@ -354,6 +396,9 @@ async function sendText(raw){
     toastMsg('Connexion serveur indisponible');
     setState('ERREUR');
     statusText.textContent = 'CONNEXION';
+  }finally{
+    hideNovaLoader();
+    requestInProgress=false;
   }
 }
 
