@@ -108,6 +108,18 @@ body[data-theme="green"] .panel,body[data-theme="green"] .settings-modal{backgro
 body[data-theme="purple"] .panel,body[data-theme="purple"] .settings-modal{background:linear-gradient(135deg,rgba(43,18,68,.94),rgba(11,7,20,.97) 58%,rgba(42,15,66,.9))}
 body[data-theme="pink"] .panel,body[data-theme="pink"] .settings-modal{background:linear-gradient(135deg,rgba(67,15,47,.94),rgba(20,6,16,.97) 58%,rgba(62,12,40,.9))}
 body[data-theme="red"] .bubble{background:linear-gradient(135deg,rgba(69,17,35,.94),rgba(28,8,18,.92))}body[data-theme="orange"] .bubble{background:linear-gradient(135deg,rgba(73,39,9,.94),rgba(29,15,5,.92))}body[data-theme="green"] .bubble{background:linear-gradient(135deg,rgba(8,59,42,.94),rgba(5,23,17,.92))}body[data-theme="purple"] .bubble{background:linear-gradient(135deg,rgba(48,20,75,.94),rgba(17,9,29,.92))}body[data-theme="pink"] .bubble{background:linear-gradient(135deg,rgba(72,17,51,.94),rgba(29,8,21,.92))}
+
+/* Le bouton vocal suit toujours la couleur du thème, activé ou désactivé. */
+#voiceBtn{border-color:color-mix(in srgb,var(--cyan) 48%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 22%,#081321),rgba(8,15,29,.98));color:var(--cyan)}
+#voiceBtn.on{border-color:var(--cyan);background:linear-gradient(120deg,color-mix(in srgb,var(--blue) 62%,#07111f),color-mix(in srgb,var(--violet) 65%,#07111f));color:#fff;box-shadow:0 0 16px color-mix(in srgb,var(--cyan) 22%,transparent),inset 0 1px 0 rgba(255,255,255,.1)}
+#voiceBtn:hover{border-color:var(--cyan);box-shadow:0 0 18px color-mix(in srgb,var(--cyan) 24%,transparent)}
+.markdown-table-wrap{max-width:100%;overflow-x:auto;margin:9px 0;border:1px solid var(--line);border-radius:10px}
+.markdown-table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.45;white-space:normal}
+.markdown-table th,.markdown-table td{padding:8px 10px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;vertical-align:top;min-width:76px}
+.markdown-table th{background:color-mix(in srgb,var(--blue) 18%,#081321);color:#fff;font-weight:700}
+.markdown-table tr:last-child td{border-bottom:0}.markdown-table th:last-child,.markdown-table td:last-child{border-right:0}
+.markdown-table tr:nth-child(even) td{background:rgba(255,255,255,.025)}
+
 body[data-theme="red"] .send-btn,body[data-theme="red"] .toggle.on,body[data-theme="red"] .icon-btn.active{background:linear-gradient(120deg,#9f1239,#ef4444,#be123c)}body[data-theme="orange"] .send-btn,body[data-theme="orange"] .toggle.on,body[data-theme="orange"] .icon-btn.active{background:linear-gradient(120deg,#92400e,#f97316,#b45309)}body[data-theme="green"] .send-btn,body[data-theme="green"] .toggle.on,body[data-theme="green"] .icon-btn.active{background:linear-gradient(120deg,#065f46,#10b981,#0f766e)}body[data-theme="purple"] .send-btn,body[data-theme="purple"] .toggle.on,body[data-theme="purple"] .icon-btn.active{background:linear-gradient(120deg,#581c87,#a855f7,#6d28d9)}body[data-theme="pink"] .send-btn,body[data-theme="pink"] .toggle.on,body[data-theme="pink"] .icon-btn.active{background:linear-gradient(120deg,#9d174d,#ec4899,#be185d)}
 body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
 @media(prefers-reduced-motion:reduce){.core-ring,.core-ring:before{animation:none}}
@@ -236,6 +248,46 @@ function setState(label, active=false){
   stateText.classList.toggle('active', active);
 }
 
+function appendInlineMarkdown(parent, value){
+  // Interprétation limitée et sûre : aucune balise HTML fournie par l'IA n'est exécutée.
+  const parts = String(value).split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  for(const part of parts){
+    if(part.startsWith('**') && part.endsWith('**')){const el=document.createElement('strong');el.textContent=part.slice(2,-2);parent.appendChild(el);}
+    else if(part.startsWith('`') && part.endsWith('`')){const el=document.createElement('code');el.textContent=part.slice(1,-1);parent.appendChild(el);}
+    else parent.appendChild(document.createTextNode(part));
+  }
+}
+function renderAssistantMarkdown(container, source){
+  const lines=String(source||'').replace(/\r/g,'').split('\n');
+  const isDivider=line=>/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+  const cells=line=>line.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(x=>x.trim());
+  for(let i=0;i<lines.length;){
+    const line=lines[i];
+    if(line.trim().includes('|') && i+1<lines.length && isDivider(lines[i+1])){
+      const headers=cells(line); const wrap=document.createElement('div');wrap.className='markdown-table-wrap';
+      const table=document.createElement('table');table.className='markdown-table';const thead=document.createElement('thead');const trh=document.createElement('tr');
+      headers.forEach(v=>{const th=document.createElement('th');appendInlineMarkdown(th,v);trh.appendChild(th);});thead.appendChild(trh);table.appendChild(thead);
+      const tbody=document.createElement('tbody');i+=2;
+      while(i<lines.length && lines[i].trim().includes('|') && lines[i].trim()!==''){
+        const vals=cells(lines[i]);const tr=document.createElement('tr');
+        for(let c=0;c<headers.length;c++){const td=document.createElement('td');appendInlineMarkdown(td,vals[c]||'');tr.appendChild(td);}tbody.appendChild(tr);i++;
+      }
+      table.appendChild(tbody);wrap.appendChild(table);container.appendChild(wrap);continue;
+    }
+    if(!line.trim()){i++;continue;}
+    if(/^\s*[-*]\s+/.test(line)){const ul=document.createElement('ul');ul.style.margin='5px 0';ul.style.paddingLeft='20px';while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])){const li=document.createElement('li');appendInlineMarkdown(li,lines[i].replace(/^\s*[-*]\s+/,''));ul.appendChild(li);i++;}container.appendChild(ul);continue;}
+    if(/^\s*#{1,3}\s+/.test(line)){const h=document.createElement(line.match(/^\s*(#{1,3})/)[1].length===1?'h3':'h4');h.style.margin='8px 0 4px';appendInlineMarkdown(h,line.replace(/^\s*#{1,3}\s+/,''));container.appendChild(h);i++;continue;}
+    const p=document.createElement('p');p.style.margin='4px 0';appendInlineMarkdown(p,line);container.appendChild(p);i++;
+  }
+}
+function textForSpeech(source){
+  return String(source||'').replace(/\r/g,'').split('\n').map(line=>{
+    if(/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line)) return '';
+    if(line.trim().includes('|')) return line.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(x=>x.trim()).filter(Boolean).join(', ');
+    return line.replace(/^\s*#{1,6}\s+/,'').replace(/^\s*[-*]\s+/,'').replace(/\*\*(.*?)\*\*/g,'$1').replace(/`([^`]+)`/g,'$1');
+  }).filter(Boolean).join('. ');
+}
+
 function addMessage(role, text){
   emptyState.style.display = 'none';
   const row = document.createElement('div');
@@ -246,7 +298,8 @@ function addMessage(role, text){
   meta.className = 'meta';
   meta.textContent = role === 'user' ? 'VOUS' : 'NOVA';
   const body = document.createElement('div');
-  body.textContent = text;
+  if(role === 'nova') renderAssistantMarkdown(body, text);
+  else body.textContent = text;
   bubble.appendChild(meta);
   bubble.appendChild(body);
   row.appendChild(bubble);
@@ -286,7 +339,7 @@ async function sendText(raw){
     const reply = d.reply || d.text || "Je n'ai pas de réponse.";
 
     addMessage('nova', reply);
-    speak(reply); // Ne bloque plus le traitement de l'interface sur la génération audio.
+    speak(textForSpeech(reply)); // Lit les tableaux naturellement, sans réciter les séparateurs Markdown.
 
     try{ handleAction(d.action); }
     catch(err){ console.warn('Action impossible', err); }
