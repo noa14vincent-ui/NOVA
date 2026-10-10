@@ -2,6 +2,7 @@ import os
 import re
 import base64
 import time
+from functools import lru_cache
 from datetime import datetime
 from pathlib import Path
 
@@ -452,15 +453,13 @@ Nouvelle demande de l'utilisateur :
 # VOIX GEMINI TTS
 # ============================================================
 
+@lru_cache(maxsize=48)
 def generate_tts(text: str) -> bytes | None:
     if gemini_client is None:
         print("⚠️ TTS indisponible : client Gemini non initialisé")
         return None
-    transcript = text.strip()
-    transcript = re.sub(r"\n{2,}", "\n<short pause>\n", transcript)
-    transcript = re.sub(r"([!?])\s+", r"\1 <short pause> ", transcript)
-    transcript = re.sub(r"\.\s+", ". <short pause> ", transcript)
-    transcript = re.sub(r";\s+", "; <short pause> ", transcript)
+    # Garder le texte simple réduit le temps de préparation de la voix.
+    transcript = re.sub(r"\s+", " ", text).strip()
     style = (
         "Voix française naturelle, chaleureuse et calme, comme une vraie assistante humaine. "
         "Débit conversationnel, articulation claire mais pas robotique. Respecte la ponctuation. "
