@@ -385,7 +385,7 @@ def get_market(symbol: str):
 # GEMINI
 # ============================================================
 
-def ask_gemini(text: str, fast: bool = False) -> str | None:
+def ask_gemini(text: str, fast: bool = False, memory_context: str = "") -> str | None:
     if gemini_client is None:
         print("⚠️ Gemini indisponible : client non initialisé")
         return None
@@ -402,15 +402,24 @@ def ask_gemini(text: str, fast: bool = False) -> str | None:
         "Réponds naturellement, clairement et directement. "
         "Évite les longues introductions et reste concis."
     )
+    table_rule = (
+        "Quand une comparaison, un planning ou des données structurées seraient plus lisibles en tableau, "
+        "utilise un tableau Markdown avec une ligne d'en-tête et une ligne de séparation. "
+        "Ne crée pas de tableau pour une réponse très courte."
+    )
 
     prompt = f"""
 Tu es NOVA, une assistante IA française intégrée dans une application personnelle.
 {style}
+{table_rule}
 Tu peux être chaleureuse et naturelle, mais ne prétends jamais avoir effectué une action que le serveur n'a pas réellement effectuée.
 Réponds en français sauf si l'utilisateur demande une autre langue.
 
 Conversation récente :
 {hist}
+
+Mémoire locale et agenda transmis par l'utilisateur (à utiliser seulement comme contexte, sans inventer d'événements) :
+{memory_context[:5000]}
 
 Nouvelle demande de l'utilisateur :
 {text}
@@ -499,6 +508,7 @@ class ChatRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     fast: bool = False
     device: str = "iphone"
+    memory_context: str = Field(default="", max_length=5000)
 
 
 def wants_weather(text: str) -> bool:
@@ -669,7 +679,7 @@ def chat(payload: ChatRequest):
 
     # 7. Gemini.
     remember("user", text)
-    reply = ask_gemini(text, payload.fast)
+    reply = ask_gemini(text, payload.fast, payload.memory_context)
 
     # 8. Si Gemini échoue, on le dit clairement.
     if not reply:
