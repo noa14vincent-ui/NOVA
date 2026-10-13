@@ -1,1747 +1,286 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101319">
-  <meta name="description" content="NOVA, votre assistant personnel intelligent.">
-  <title>NOVA — Assistant personnel</title>
-
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #101319;
-      --surface: #171b23;
-      --surface-2: #1d222c;
-      --surface-3: #252b37;
-      --text: #f0f2f7;
-      --muted: #9ca5b5;
-      --border: #303744;
-      --accent: #8da8ff;
-      --accent-strong: #587ce5;
-      --accent-text: #ffffff;
-      --danger: #ff8585;
-      --success: #78d7ac;
-      --radius: 18px;
-      --shadow: 0 18px 50px rgba(0, 0, 0, .24);
-    }
-
-    * { box-sizing: border-box; }
-
-    html {
-      min-height: 100%;
-      background: var(--bg);
-      scroll-behavior: smooth;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100dvh;
-      background:
-        radial-gradient(ellipse at 50% -20%, rgba(99, 121, 180, .09), transparent 55%),
-        var(--bg);
-      color: var(--text);
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        Roboto, Helvetica, Arial, sans-serif;
-      font-size: 15px;
-      line-height: 1.5;
-    }
-
-    button, input, textarea, select { font: inherit; }
-    button { -webkit-tap-highlight-color: transparent; }
-    button:focus-visible, input:focus-visible, textarea:focus-visible,
-    select:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 3px;
-    }
-
-    button:disabled { opacity: .45; cursor: not-allowed; }
-
-    .app {
-      width: min(100%, 920px);
-      min-height: 100dvh;
-      margin: 0 auto;
-      padding: 0 18px calc(22px + env(safe-area-inset-bottom));
-      display: flex;
-      flex-direction: column;
-    }
-
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: calc(14px + env(safe-area-inset-top)) 0 14px;
-      background: rgba(16, 19, 25, .94);
-      border-bottom: 1px solid rgba(255, 255, 255, .07);
-      backdrop-filter: blur(18px);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      min-width: 0;
-    }
-
-    .brand-mark {
-      display: grid;
-      place-items: center;
-      width: 42px;
-      height: 42px;
-      border: 1px solid #4d5d7c;
-      border-radius: 14px;
-      background: #222b3c;
-      color: #dce5ff;
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 1px;
-    }
-
-    .brand-name { font-size: 18px; font-weight: 800; letter-spacing: 2px; }
-    .brand-subtitle { color: var(--muted); font-size: 11px; }
-
-    .top-actions { display: flex; gap: 7px; align-items: center; }
-
-    .button {
-      min-height: 42px;
-      padding: 10px 14px;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      background: var(--surface-2);
-      cursor: pointer;
-      transition: background .16s, border-color .16s, transform .16s;
-    }
-
-    .button:hover { background: var(--surface-3); border-color: #515c70; }
-    .button:active { transform: scale(.98); }
-    .button.primary {
-      background: var(--accent-strong);
-      border-color: var(--accent-strong);
-      color: var(--accent-text);
-      font-weight: 700;
-    }
-    .button.primary:hover { background: #6989e9; }
-    .button.ghost { background: transparent; }
-    .button.danger { color: var(--danger); }
-    .button.small { min-height: 34px; padding: 7px 10px; font-size: 13px; }
-    .button.square { width: 43px; min-width: 43px; padding: 0; }
-    .button.active { border-color: var(--accent); background: #26334b; }
-
-    .main { flex: 1; display: flex; flex-direction: column; }
-
-    .welcome {
-      padding: 38px 0 24px;
-      text-align: center;
-    }
-
-    .eyebrow {
-      color: var(--accent);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 9px 0 8px;
-      font-size: clamp(30px, 7vw, 43px);
-      line-height: 1.12;
-      letter-spacing: -1.5px;
-    }
-
-    .welcome p {
-      max-width: 480px;
-      margin: 0 auto;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin: 0 0 24px;
-    }
-
-    .quick-card {
-      min-height: 90px;
-      padding: 15px 12px;
-      text-align: left;
-      border: 1px solid var(--border);
-      border-radius: 15px;
-      background: var(--surface);
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    .quick-card:hover { border-color: #586887; background: var(--surface-2); }
-    .quick-title { display: block; margin-bottom: 5px; font-weight: 700; font-size: 13px; }
-    .quick-description { display: block; color: var(--muted); font-size: 11px; }
-
-    .section-heading {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 0 0 12px;
-    }
-
-    .section-heading h2 { margin: 0; font-size: 15px; font-weight: 750; }
-    .muted { color: var(--muted); }
-    .tiny { font-size: 12px; }
-
-    .chat {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      padding-bottom: 18px;
-    }
-
-    .message {
-      max-width: 88%;
-      padding: 13px 15px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow-wrap: anywhere;
-      white-space: pre-wrap;
-    }
-
-    .message.assistant {
-      align-self: flex-start;
-      background: var(--surface);
-      border-top-left-radius: 5px;
-    }
-
-    .message.user {
-      align-self: flex-end;
-      background: #263653;
-      border-color: #3a5077;
-      border-top-right-radius: 5px;
-    }
-
-    .message-label {
-      margin-bottom: 5px;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    .message p { margin: 0; }
-    .message p + p { margin-top: 8px; }
-
-    .typing { color: var(--muted); font-size: 13px; padding: 8px 0; }
-
-    .composer-wrap {
-      position: sticky;
-      bottom: 0;
-      z-index: 5;
-      padding: 12px 0 calc(8px + env(safe-area-inset-bottom));
-      margin-top: auto;
-      background: linear-gradient(to bottom, transparent, var(--bg) 18%);
-    }
-
-    .composer {
-      padding: 9px;
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-      border: 1px solid #424b5b;
-      border-radius: 18px;
-      background: #191e27;
-      box-shadow: var(--shadow);
-    }
-
-    .composer textarea {
-      flex: 1;
-      min-width: 0;
-      min-height: 42px;
-      max-height: 150px;
-      resize: none;
-      padding: 10px 5px;
-      border: 0;
-      outline: none;
-      background: transparent;
-      color: var(--text);
-    }
-
-    .composer textarea:focus-visible { outline: none; }
-    .composer textarea::placeholder { color: #8993a4; }
-
-    .composer-tools {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .status-line {
-      min-height: 20px;
-      padding: 7px 3px 0;
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    .dashboard {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin: 8px 0 24px;
-    }
-
-    .panel {
-      min-width: 0;
-      padding: 17px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--surface);
-    }
-
-    .panel.full { grid-column: 1 / -1; }
-    .panel h2 { margin: 0; font-size: 15px; }
-    .panel p { color: var(--muted); font-size: 13px; }
-    .weather-temp { margin: 16px 0 2px; font-size: 36px; font-weight: 750; }
-    .weather-city { font-size: 13px; color: var(--muted); }
-    .inline-form { display: flex; gap: 7px; margin-top: 12px; }
-    .inline-form input { min-width: 0; flex: 1; }
-
-    input, textarea, select {
-      width: 100%;
-      min-height: 42px;
-      padding: 10px 12px;
-      color: var(--text);
-      background: #11151c;
-      border: 1px solid var(--border);
-      border-radius: 11px;
-    }
-
-    input::placeholder, textarea::placeholder { color: #818b9b; }
-    label { display: block; margin: 12px 0 6px; color: #c7ceda; font-size: 12px; }
-    .stack { display: flex; flex-direction: column; gap: 10px; }
-    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .row > * { min-width: 0; }
-    .spread { justify-content: space-between; }
-
-    .item-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-    .list-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #141820;
-    }
-
-    .list-item-content { flex: 1; min-width: 0; }
-    .list-item-title { font-weight: 650; overflow-wrap: anywhere; }
-    .list-item-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
-    .list-item-actions { display: flex; gap: 5px; flex-wrap: wrap; }
-
-    .empty {
-      padding: 19px 12px;
-      color: var(--muted);
-      font-size: 13px;
-      text-align: center;
-      border: 1px dashed #353d4b;
-      border-radius: 12px;
-    }
-
-    .calendar-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin: 12px 0;
-    }
-
-    .calendar-toolbar strong { font-size: 14px; text-align: center; }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
-    .calendar-weekday { padding: 7px 0; text-align: center; color: var(--muted); font-size: 10px; }
-    .calendar-day {
-      position: relative;
-      min-width: 0;
-      aspect-ratio: 1 / 1;
-      padding: 0;
-      border: 1px solid transparent;
-      border-radius: 10px;
-      color: var(--text);
-      background: #1d222c;
-      cursor: pointer;
-    }
-
-    .calendar-day:hover { border-color: #65718a; }
-    .calendar-day.outside { color: #626c7b; background: transparent; }
-    .calendar-day.today { border-color: var(--accent); }
-    .calendar-day.selected { background: var(--accent-strong); color: white; }
-    .calendar-day.has-event::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      bottom: 4px;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: var(--accent);
-      transform: translateX(-50%);
-    }
-
-    .calendar-day.selected.has-event::after { background: white; }
-    .day-detail { margin-top: 17px; padding-top: 15px; border-top: 1px solid var(--border); }
-    .divider { height: 1px; margin: 15px 0; background: var(--border); }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      z-index: 30;
-      display: none;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 14px;
-      background: rgba(0, 0, 0, .66);
-      backdrop-filter: blur(7px);
-    }
-
-    .modal.open { display: flex; }
-    .modal-card {
-      width: min(100%, 560px);
-      max-height: min(86dvh, 850px);
-      overflow-y: auto;
-      padding: 21px;
-      border: 1px solid #414958;
-      border-radius: 22px;
-      background: #171b23;
-      box-shadow: var(--shadow);
-      animation: appear .16s ease-out;
-    }
-
-    @keyframes appear {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 17px;
-    }
-
-    .modal-header h2 { margin: 0; font-size: 19px; }
-    .modal-description { margin: -8px 0 15px; color: var(--muted); font-size: 13px; }
-    .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-
-    .theme-option {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--surface-2);
-      color: var(--text);
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .theme-option.active { border-color: var(--accent); }
-    .swatch { width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px; }
-    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
-    .setting-row:last-child { border-bottom: 0; }
-    .setting-row p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
-    .setting-row input[type="checkbox"] { width: 19px; min-height: 19px; accent-color: var(--accent-strong); }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: calc(25px + env(safe-area-inset-bottom));
-      z-index: 60;
-      width: max-content;
-      max-width: calc(100vw - 32px);
-      padding: 12px 16px;
-      border: 1px solid #47536a;
-      border-radius: 12px;
-      background: #252d3b;
-      color: white;
-      box-shadow: var(--shadow);
-      opacity: 0;
-      pointer-events: none;
-      transform: translate(-50%, 10px);
-      transition: opacity .18s, transform .18s;
-    }
-
-    .toast.visible { opacity: 1; transform: translate(-50%, 0); }
-    .footer { padding: 10px 0; text-align: center; color: #737d8d; font-size: 10px; }
-
-    body.light {
-      color-scheme: light;
-      --bg: #f3f5f9;
-      --surface: #ffffff;
-      --surface-2: #f5f7fb;
-      --surface-3: #e8edf6;
-      --text: #202634;
-      --muted: #677184;
-      --border: #d9deea;
-      --accent: #3e61bd;
-      --accent-strong: #3e61bd;
-      --accent-text: #ffffff;
-      --shadow: 0 15px 40px rgba(24, 36, 65, .10);
-      background: var(--bg);
-    }
-
-    body.light .topbar { background: rgba(243, 245, 249, .94); }
-    body.light .brand-mark { background: #e6ebf8; color: #2b467f; border-color: #ccd6ef; }
-    body.light .composer, body.light input, body.light textarea, body.light select { background: #fff; }
-    body.light .message.user { background: #e4ebfc; border-color: #cad7f5; }
-    body.light .list-item, body.light .calendar-day { background: #f5f7fb; }
-    body.light .modal-card { background: #fff; }
-    body.light .theme-option { background: #f5f7fb; }
-
-    body.theme-mars {
-      --accent: #e5a07c;
-      --accent-strong: #a75e42;
-    }
-    body.theme-aurora {
-      --accent: #8bd7bf;
-      --accent-strong: #397d70;
-    }
-    body.theme-neon {
-      --accent: #d0a6ff;
-      --accent-strong: #7950b5;
-    }
-    body.theme-eclipse {
-      --accent: #c3c8d2;
-      --accent-strong: #5a6476;
-    }
-    body.theme-solar {
-      --accent: #e7c17d;
-      --accent-strong: #977333;
-    }
-
-    @media (min-width: 650px) {
-      .app { padding-left: 26px; padding-right: 26px; }
-      .welcome { padding-top: 54px; }
-      .modal { align-items: center; }
-      .dashboard { gap: 15px; }
-      .panel { padding: 20px; }
-    }
-
-    @media (max-width: 480px) {
-      .app { padding-left: 13px; padding-right: 13px; }
-      .topbar { gap: 7px; }
-      .brand { gap: 8px; }
-      .brand-mark { width: 37px; height: 37px; }
-      .brand-name { font-size: 16px; }
-      .brand-subtitle { font-size: 10px; }
-      .top-actions { gap: 5px; }
-      .top-actions .button { min-height: 38px; padding: 8px 9px; font-size: 12px; }
-      .quick-actions { gap: 7px; }
-      .quick-card { min-height: 85px; padding: 11px 9px; }
-      .quick-title { font-size: 12px; }
-      .quick-description { font-size: 10px; }
-      .dashboard { grid-template-columns: 1fr; }
-      .panel.full { grid-column: auto; }
-      .message { max-width: 94%; }
-      .composer { gap: 5px; padding: 7px; }
-      .composer-tools { gap: 4px; }
-      .button.square { width: 39px; min-width: 39px; min-height: 39px; }
-      .calendar-grid { gap: 3px; }
-      .calendar-day { border-radius: 7px; font-size: 12px; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        scroll-behavior: auto !important;
-        animation-duration: .01ms !important;
-        transition-duration: .01ms !important;
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>NOVA — Assistante personnelle</title>
+<style>
+:root {
+  --bg:#090d19; --panel:rgba(20,26,46,.84); --panel2:rgba(31,39,65,.8);
+  --text:#f5f6ff; --muted:#a5aec9; --line:rgba(190,203,255,.15);
+  --a:#8c7bff; --b:#48d8e8; --c:#d88cff;
+  --gradient:linear-gradient(125deg,var(--a),var(--b),var(--c));
+  --shadow:0 18px 55px #0004;
+}
+*{box-sizing:border-box}
+body {
+  margin:0;min-height:100vh;color:var(--text);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:radial-gradient(ellipse at 10% 0%,color-mix(in srgb,var(--a) 24%,transparent),transparent 45%),
+  radial-gradient(ellipse at 95% 15%,color-mix(in srgb,var(--b) 17%,transparent),transparent 40%),
+  linear-gradient(155deg,#080b15,#11172b 60%,#080b15);
+}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.13;background-image:radial-gradient(#fff 0.6px,transparent .7px);background-size:23px 23px}
+button,input,textarea,select{font:inherit}
+button{color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+button:disabled{opacity:.5;cursor:wait}
+.app{max-width:1180px;margin:auto;padding:env(safe-area-inset-top) 14px calc(25px + env(safe-area-inset-bottom))}
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;background:linear-gradient(#090d19ed,#090d19a8);backdrop-filter:blur(18px)}
+.brand{display:flex;align-items:center;gap:11px}.logo{width:43px;height:43px;border-radius:15px;background:var(--gradient);background-size:200%;animation:flow 9s ease infinite;display:grid;place-items:center;color:#080b15;font-weight:900;font-size:19px;box-shadow:0 0 27px color-mix(in srgb,var(--a) 35%,transparent)}
+.brand h1{margin:0;font-size:17px;letter-spacing:.16em}.brand p{margin:1px 0 0;color:var(--muted);font-size:10px;letter-spacing:.08em}
+.top-actions{display:flex;gap:6px}
+.icon,.secondary,.chip,.tool{border:1px solid var(--line);background:var(--panel);border-radius:13px;padding:9px 12px}
+.icon{width:41px;height:41px;padding:0;display:grid;place-items:center;font-size:17px}
+.icon:hover,.secondary:hover,.chip:hover,.tool:hover{border-color:var(--b)}
+.primary{border:0;border-radius:13px;background:var(--gradient);background-size:200%;animation:flow 10s ease infinite;color:#090d19;font-weight:800;padding:11px 14px;box-shadow:0 7px 24px color-mix(in srgb,var(--a) 22%,transparent)}
+@keyframes flow{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:16px;align-items:start}
+.panel{border:1px solid var(--line);border-radius:22px;background:var(--panel);box-shadow:var(--shadow);backdrop-filter:blur(20px)}
+.chat-panel{min-height:74vh;display:flex;flex-direction:column;overflow:hidden}
+.panel-head{padding:16px 19px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel-head h2{font-size:14px;margin:0}.status{color:#72e5bd;font-size:11px}.status:before{content:"";display:inline-block;width:7px;height:7px;background:currentColor;border-radius:50%;margin-right:7px;box-shadow:0 0 10px currentColor}
+.messages{flex:1;min-height:300px;max-height:58vh;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.welcome{text-align:center;max-width:470px;margin:auto;padding:22px 10px}
+.orb{width:75px;height:75px;margin:0 auto 17px;border-radius:27px;background:var(--gradient);background-size:200%;animation:flow 9s ease infinite;box-shadow:0 0 48px color-mix(in srgb,var(--a) 35%,transparent);position:relative}
+.orb:after{content:"";position:absolute;inset:9px;border:1px solid #ffffff77;border-radius:20px}
+.welcome h2{font-size:26px;letter-spacing:-.04em;margin:0 0 8px}.welcome p{color:var(--muted);margin:0 auto 17px}
+.quick{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.chip{font-size:12px;color:var(--muted)}
+.message{max-width:88%;padding:12px 14px;border:1px solid var(--line);border-radius:17px;white-space:pre-wrap;overflow-wrap:anywhere}
+.message.user{align-self:flex-end;background:linear-gradient(135deg,color-mix(in srgb,var(--a) 27%,var(--panel2)),color-mix(in srgb,var(--b) 10%,var(--panel2)));border-bottom-right-radius:5px}
+.message.assistant{align-self:flex-start;background:var(--panel2);border-bottom-left-radius:5px}
+.message small{display:block;font-size:10px;color:var(--muted);margin-bottom:5px}
+.typing{font-size:12px;color:var(--muted);padding:6px}
+.composer-wrap{padding:12px;border-top:1px solid var(--line)}
+.composer{display:flex;align-items:flex-end;gap:8px;padding:7px;border:1px solid var(--line);border-radius:18px;background:#060a1680}
+.composer textarea{flex:1;min-width:0;resize:none;min-height:42px;max-height:140px;padding:10px 5px;border:0;outline:0;background:transparent;color:var(--text)}
+.composer textarea::placeholder,input::placeholder{color:#818ba9}
+.send{width:43px;height:43px;border:0;border-radius:13px;background:var(--gradient);color:#080b15;font-size:21px;font-weight:900}
+.composer-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:9px 3px 0;color:var(--muted);font-size:11px}
+.tool-row{display:flex;gap:6px;flex-wrap:wrap}.tool{padding:6px 8px;font-size:11px;color:var(--muted);background:transparent}
+.sidebar{display:flex;flex-direction:column;gap:13px}.side-card{padding:15px}
+.side-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}.side-title h3{font-size:13px;margin:0}
+.muted{color:var(--muted);font-size:11px}.big{font-size:28px;font-weight:750;letter-spacing:-.04em}
+.field{width:100%;min-width:0;padding:10px 11px;border-radius:12px;border:1px solid var(--line);background:#070b1980;color:var(--text)}
+.row{display:flex;gap:7px}.side-btn{width:100%;margin-top:9px}
+.modal-backdrop{display:none;position:fixed;inset:0;z-index:30;background:#02040cc9;backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:13px}
+.modal-backdrop.open{display:flex}.modal{width:min(850px,100%);max-height:88vh;overflow:auto;background:#11172b;border:1px solid var(--line);border-radius:23px;box-shadow:0 30px 100px #0009}
+.modal-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:16px 18px;background:#11172bf2;border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+.modal-head h2{font-size:16px;margin:0}.modal-body{padding:18px}
+.hero{padding:19px;border:1px solid var(--line);border-radius:18px;background:radial-gradient(ellipse at top left,color-mix(in srgb,var(--a) 24%,transparent),transparent 65%),var(--panel2);margin-bottom:14px}
+.hero h3{font-size:21px;margin:0 0 5px}.hero p{color:var(--muted);font-size:12px;margin:0}
+.memory-controls{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}
+.memory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:11px}
+.memory-card{--gem:#9a86ff;min-height:175px;padding:13px;border:1px solid color-mix(in srgb,var(--gem) 38%,var(--line));border-radius:17px;background:linear-gradient(145deg,color-mix(in srgb,var(--gem) 12%,#171e35),#0c1122);box-shadow:inset 0 1px #ffffff0d,0 12px 30px #0002;transition:transform .22s,border-color .22s}
+.memory-card:hover{transform:translateY(-3px);border-color:var(--gem)}
+.gem-stage{height:59px;display:flex;align-items:center;gap:12px;margin-bottom:7px;perspective:500px}
+.gem{width:46px;height:46px;flex:none;position:relative;transform-style:preserve-3d;transform:rotate(-10deg) rotateY(-18deg);filter:drop-shadow(0 7px 10px color-mix(in srgb,var(--gem) 45%,transparent));transition:transform .3s}
+.memory-card:hover .gem{transform:rotate(9deg) rotateY(25deg) translateY(-2px)}
+.gem:before{content:"";position:absolute;inset:1px;clip-path:polygon(50% 0,92% 22%,100% 62%,52% 100%,0 62%,8% 22%);background:linear-gradient(135deg,#ffffffc9,var(--gem) 25%,color-mix(in srgb,var(--gem) 40%,#11182b) 68%,#ffffff75)}
+.gem:after{content:"";position:absolute;inset:1px;clip-path:polygon(50% 0,50% 100%,0 62%,8% 22%);background:linear-gradient(155deg,#ffffff8c,transparent 68%)}
+.gem-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.memory-text{font-size:13px;overflow-wrap:anywhere;margin:5px 0 11px}
+.memory-meta{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;gap:5px}
+.memory-actions{display:flex;gap:6px;margin-top:10px}.memory-actions button{font-size:11px;border:1px solid var(--line);border-radius:9px;background:#ffffff08;padding:6px 8px}
+.empty{grid-column:1/-1;padding:28px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:15px}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.setting{border:1px solid var(--line);border-radius:14px;padding:13px}.setting label{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}
+.theme-list{display:flex;gap:8px;flex-wrap:wrap}.swatch{width:34px;height:34px;border-radius:11px;border:2px solid transparent;background:var(--swatch)}.swatch.active{border-color:white;outline:2px solid var(--a)}
+.agenda-list{display:flex;flex-direction:column;gap:8px;margin-top:14px}.agenda-entry{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:11px;border:1px solid var(--line);border-radius:12px}
+.agenda-entry strong{font-size:12px;display:block}.agenda-entry span{font-size:11px;color:var(--muted);display:block}
+.toast{position:fixed;z-index:60;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,15px);opacity:0;pointer-events:none;background:#1c2540;border:1px solid var(--line);padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);font-size:12px;transition:.2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+body.theme-mars{--a:#ff876a;--b:#ffc46b;--c:#ff6d9e;--gradient:linear-gradient(125deg,var(--a),var(--b),var(--c))}
+body.theme-aurora{--a:#55e6c1;--b:#65a8ff;--c:#c78bff;--gradient:linear-gradient(125deg,var(--a),var(--b),var(--c))}
+body.theme-neon{--a:#f06bff;--b:#6cf7ff;--c:#9b7bff;--gradient:linear-gradient(125deg,var(--a),var(--b),var(--c))}
+body.theme-eclipse{--a:#6573c7;--b:#d5dcff;--c:#8d7cff;--gradient:linear-gradient(125deg,var(--a),var(--b),var(--c))}
+body.theme-solar{--a:#ffc857;--b:#ff8f70;--c:#f5dc7d;--gradient:linear-gradient(125deg,var(--a),var(--b),var(--c))}
+body.light{--panel:#ffffffd9;--panel2:#f0f2ffed;--text:#18203a;--muted:#66708d;--line:#6475a329;background:radial-gradient(ellipse at 10% 0%,color-mix(in srgb,var(--a) 14%,transparent),transparent 45%),linear-gradient(150deg,#f8f9ff,#e8edff)}
+body.light .topbar{background:linear-gradient(#f8f9ffed,#f8f9ffad)}body.light .modal,body.light .modal-head{background:#f7f8ffed}body.light .field{background:#fff;color:var(--text)}body.light .composer{background:#fff9}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.messages{max-height:52vh}}
+@media(max-width:540px){.app{padding-left:9px;padding-right:9px}.brand h1{font-size:15px}.top-actions{gap:4px}.icon{width:37px;height:37px}.sidebar{gap:8px}.side-card{padding:12px}.messages{padding:12px;max-height:48vh}.message{max-width:94%}.composer-wrap{padding:9px}.composer-tools{align-items:flex-start;flex-direction:column}.modal-body{padding:13px}.memory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.memory-card{padding:10px}.gem{width:40px;height:40px}.settings-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
 </head>
-
 <body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">N</div>
-        <div>
-          <div class="brand-name">NOVA</div>
-          <div class="brand-subtitle">Assistant personnel</div>
-        </div>
-      </div>
-      <nav class="top-actions" aria-label="Navigation principale">
-        <button class="button" id="agendaOpen" type="button">Agenda</button>
-        <button class="button" id="memoryOpen" type="button">Mémoire</button>
-        <button class="button square" id="settingsOpen" type="button" aria-label="Paramètres" title="Paramètres">Réglages</button>
-      </nav>
-    </header>
-
-    <main class="main">
-      <section class="welcome" id="welcome">
-        <div class="eyebrow">Votre assistant intelligent</div>
-        <h1>Bonjour, que puis-je faire&nbsp;?</h1>
-        <p>Posez une question, organisez votre journée ou demandez de l’aide pour un projet.</p>
-      </section>
-
-      <section class="quick-actions" aria-label="Actions rapides">
-        <button class="quick-card" id="quickPlan" type="button">
-          <span class="quick-title">Organiser ma journée</span>
-          <span class="quick-description">Agenda et rappels</span>
-        </button>
-        <button class="quick-card" id="quickWeather" type="button">
-          <span class="quick-title">Consulter la météo</span>
-          <span class="quick-description">Conditions locales</span>
-        </button>
-        <button class="quick-card" id="quickIdeas" type="button">
-          <span class="quick-title">Trouver des idées</span>
-          <span class="quick-description">Créativité et projets</span>
-        </button>
-      </section>
-
-      <section aria-label="Conversation">
-        <div class="section-heading">
-          <h2>Conversation</h2>
-          <button class="button ghost small" id="clearChat" type="button">Effacer</button>
-        </div>
-        <div class="chat" id="chat" aria-live="polite">
-          <article class="message assistant">
-            <div class="message-label">NOVA</div>
-            <p>Bonjour. Je suis NOVA, ton assistant personnel. Comment puis-je t'aider aujourd'hui ?</p>
-          </article>
-        </div>
-        <div id="typing" class="typing" hidden>NOVA prépare une réponse…</div>
-      </section>
-
-      <section class="composer-wrap" aria-label="Écrire un message">
-        <form class="composer" id="chatForm">
-          <textarea id="messageInput" rows="1" maxlength="12000"
-            placeholder="Écris ton message…" aria-label="Ton message"></textarea>
-          <div class="composer-tools">
-            <button class="button square" id="micButton" type="button" title="Dicter un message" aria-label="Dicter un message">Micro</button>
-            <button class="button square" id="voiceButton" type="button" title="Activer ou désactiver la lecture vocale" aria-label="Lecture vocale">Voix</button>
-            <button class="button primary square" id="sendButton" type="submit" aria-label="Envoyer le message" title="Envoyer">Env.</button>
-          </div>
-        </form>
-        <div class="status-line" id="statusLine">Prêt à discuter</div>
-      </section>
-
-      <section class="dashboard" aria-label="Outils personnels">
-        <article class="panel">
-          <div class="section-heading">
-            <h2>Météo</h2>
-            <button class="button small" id="refreshWeather" type="button">Actualiser</button>
-          </div>
-          <div class="weather-city" id="weatherCity">Choisis une ville</div>
-          <div class="weather-temp" id="weatherTemp">--°</div>
-          <div id="weatherDescription" class="muted tiny">Les données apparaîtront ici.</div>
-          <form class="inline-form" id="weatherForm">
-            <input id="cityInput" type="text" maxlength="100" placeholder="Nom de la ville" aria-label="Nom de la ville">
-            <button class="button primary" type="submit">Chercher</button>
-          </form>
-          <div class="row" style="margin-top:9px">
-            <button class="button small" type="button" data-city="Grenoble">Grenoble</button>
-            <button class="button small" type="button" data-city="Paris">Paris</button>
-          </div>
-        </article>
-
-        <article class="panel">
-          <div class="section-heading">
-            <h2>À venir</h2>
-            <button class="button small" id="addReminderOpen" type="button">Ajouter</button>
-          </div>
-          <div class="muted tiny" id="reminderSummary">Tes prochains rappels s'afficheront ici.</div>
-          <div class="item-list" id="upcomingReminders"></div>
-        </article>
-
-        <article class="panel full">
-          <div class="section-heading">
-            <h2>Mon espace</h2>
-            <button class="button small" id="exportData" type="button">Exporter mes données</button>
-          </div>
-          <p>Retrouve tes rendez-vous et tes rappels. Les données personnelles de cet espace sont stockées dans ce navigateur.</p>
-          <div class="row">
-            <button class="button" id="dashboardAgenda" type="button">Ouvrir l'agenda</button>
-            <button class="button" id="dashboardMemory" type="button">Gérer la mémoire</button>
-          </div>
-        </article>
-      </section>
-    </main>
-
-    <footer class="footer">NOVA V1 · Assistant personnel</footer>
-  </div>
-
-  <!-- Agenda -->
-  <div class="modal" id="agendaModal" role="dialog" aria-modal="true" aria-labelledby="agendaTitle">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="agendaTitle">Mon agenda</h2>
-        <button class="button square" data-close="agendaModal" aria-label="Fermer" type="button">X</button>
-      </div>
-
-      <div class="calendar-toolbar">
-        <button class="button square" id="prevMonth" aria-label="Mois précédent" type="button">‹</button>
-        <strong id="calendarMonth"></strong>
-        <button class="button square" id="nextMonth" aria-label="Mois suivant" type="button">›</button>
-      </div>
-
-      <div class="calendar-grid" id="calendarWeekdays">
-        <div class="calendar-weekday">Lun.</div>
-        <div class="calendar-weekday">Mar.</div>
-        <div class="calendar-weekday">Mer.</div>
-        <div class="calendar-weekday">Jeu.</div>
-        <div class="calendar-weekday">Ven.</div>
-        <div class="calendar-weekday">Sam.</div>
-        <div class="calendar-weekday">Dim.</div>
-      </div>
-      <div class="calendar-grid" id="calendarDays"></div>
-
-      <div class="day-detail">
-        <div class="section-heading">
-          <h2 id="selectedDateLabel">Événements</h2>
-          <button class="button primary small" id="addEventOpen" type="button">Ajouter un événement</button>
-        </div>
-        <div class="item-list" id="dayEvents"></div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="section-heading"><h2>Prochains événements</h2></div>
-      <div class="item-list" id="allEvents"></div>
-    </div>
-  </div>
-
-  <!-- Ajouter un événement -->
-  <div class="modal" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventTitle">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="eventTitle">Nouvel événement</h2>
-        <button class="button square" data-close="eventModal" aria-label="Fermer" type="button">X</button>
-      </div>
-      <form id="eventForm">
-        <label for="eventName">Titre</label>
-        <input id="eventName" required maxlength="120" placeholder="Ex. Réunion de projet">
-        <label for="eventDate">Date</label>
-        <input id="eventDate" type="date" required>
-        <label for="eventTime">Heure</label>
-        <input id="eventTime" type="time" value="09:00" required>
-        <label for="eventNotes">Notes (facultatif)</label>
-        <textarea id="eventNotes" rows="3" maxlength="1000" placeholder="Détails de l'événement"></textarea>
-        <div class="row" style="margin-top:17px">
-          <button class="button primary" type="submit">Enregistrer</button>
-          <button class="button" data-close="eventModal" type="button">Annuler</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Rappels -->
-  <div class="modal" id="reminderModal" role="dialog" aria-modal="true" aria-labelledby="reminderTitle">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="reminderTitle">Nouveau rappel</h2>
-        <button class="button square" data-close="reminderModal" aria-label="Fermer" type="button">X</button>
-      </div>
-      <form id="reminderForm">
-        <label for="reminderName">Rappel</label>
-        <input id="reminderName" required maxlength="160" placeholder="Ex. Préparer mon dossier">
-        <label for="reminderDate">Date</label>
-        <input id="reminderDate" type="date" required>
-        <label for="reminderTime">Heure</label>
-        <input id="reminderTime" type="time" value="18:00" required>
-        <div class="muted tiny" style="margin-top:9px">Les rappels sont conservés dans ce navigateur. Les notifications dépendent des autorisations et du fonctionnement de l'application.</div>
-        <div class="row" style="margin-top:17px">
-          <button class="button primary" type="submit">Enregistrer</button>
-          <button class="button" data-close="reminderModal" type="button">Annuler</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Mémoire -->
-  <div class="modal" id="memoryModal" role="dialog" aria-modal="true" aria-labelledby="memoryTitle">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="memoryTitle">Mémoire personnelle</h2>
-        <button class="button square" data-close="memoryModal" aria-label="Fermer" type="button">X</button>
-      </div>
-      <p class="modal-description">Ajoute les informations que tu souhaites retrouver plus tard. Elles restent dans le stockage local de ce navigateur.</p>
-
-      <div id="memoryLock">
-        <label for="memoryPin">Code PIN local (4 à 12 chiffres)</label>
-        <input id="memoryPin" type="password" inputmode="numeric" maxlength="12" placeholder="Code PIN">
-        <div class="row" style="margin-top:10px">
-          <button class="button primary" id="unlockMemory" type="button">Déverrouiller</button>
-          <button class="button" id="setupMemoryPin" type="button">Créer un code</button>
-        </div>
-        <p class="muted tiny">Attention : ce verrouillage est une protection d'interface, pas un chiffrement sécurisé. Ne stocke pas de mots de passe ni de données sensibles.</p>
-      </div>
-
-      <div id="memoryContent" hidden>
-        <form id="memoryForm">
-          <label for="memoryText">Nouvelle note</label>
-          <textarea id="memoryText" rows="3" maxlength="3000" required placeholder="Ce que tu veux retenir…"></textarea>
-          <button class="button primary" type="submit" style="margin-top:9px">Ajouter à la mémoire</button>
-        </form>
-        <div class="divider"></div>
-        <div class="section-heading"><h2>Mes notes</h2><button class="button small" id="lockMemory" type="button">Verrouiller</button></div>
-        <div class="item-list" id="memoryList"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Réglages -->
-  <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2 id="settingsTitle">Réglages</h2>
-        <button class="button square" data-close="settingsModal" aria-label="Fermer" type="button">X</button>
-      </div>
-
-      <div class="section-heading"><h2>Apparence</h2></div>
-      <div class="theme-grid" id="themeGrid">
-        <button class="theme-option" data-theme="default" type="button"><span class="swatch" style="background:#587ce5"></span><span>Bleu sobre</span></button>
-        <button class="theme-option" data-theme="mars" type="button"><span class="swatch" style="background:#a75e42"></span><span>Terre</span></button>
-        <button class="theme-option" data-theme="aurora" type="button"><span class="swatch" style="background:#397d70"></span><span>Forêt</span></button>
-        <button class="theme-option" data-theme="neon" type="button"><span class="swatch" style="background:#7950b5"></span><span>Violet</span></button>
-        <button class="theme-option" data-theme="eclipse" type="button"><span class="swatch" style="background:#5a6476"></span><span>Graphite</span></button>
-        <button class="theme-option" data-theme="solar" type="button"><span class="swatch" style="background:#977333"></span><span>Sable</span></button>
-      </div>
-
-      <div class="setting-row">
-        <div><strong>Mode clair</strong><p>Utiliser un fond clair.</p></div>
-        <input type="checkbox" id="lightMode" aria-label="Activer le mode clair">
-      </div>
-      <div class="setting-row">
-        <div><strong>Lecture vocale</strong><p>Lire les réponses à voix haute.</p></div>
-        <input type="checkbox" id="voiceSetting" aria-label="Activer la lecture vocale">
-      </div>
-      <div class="setting-row">
-        <div><strong>Notifications de rappels</strong><p>Demander l'autorisation du navigateur.</p></div>
-        <button class="button small" id="notificationPermission" type="button">Activer</button>
-      </div>
-
-      <div class="divider"></div>
-      <div class="section-heading"><h2>Données locales</h2></div>
-      <p class="muted tiny">L'agenda, les rappels, la mémoire et les préférences sont stockés dans le navigateur. Effacer les données du site peut les supprimer.</p>
-      <button class="button danger" id="resetLocalData" type="button">Réinitialiser les données locales</button>
-    </div>
-  </div>
-
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-  <script>
-    (() => {
-      "use strict";
-
-      const $ = (selector) => document.querySelector(selector);
-      const $$ = (selector) => [...document.querySelectorAll(selector)];
-
-      const STORAGE = {
-        agenda: "novaAgendaV1",
-        memory: "novaLongMemoryV1",
-        theme: "novaTheme",
-        settings: "novaSettings",
-        reminders: "novaRemindersV1",
-        memoryPin: "novaMemoryPinV1",
-        chat: "novaChatV1"
-      };
-
-      const DEFAULT_SETTINGS = {
-        voice: false,
-        light: false,
-        city: "Grenoble"
-      };
-
-      function readJSON(key, fallback) {
-        try {
-          const value = localStorage.getItem(key);
-          return value === null ? fallback : JSON.parse(value);
-        } catch {
-          return fallback;
-        }
-      }
-
-      function saveJSON(key, value) {
-        try {
-          localStorage.setItem(key, JSON.stringify(value));
-        } catch {
-          showToast("Impossible d'enregistrer : stockage indisponible.");
-        }
-      }
-
-      let settings = { ...DEFAULT_SETTINGS, ...readJSON(STORAGE.settings, {}) };
-      let events = readJSON(STORAGE.agenda, []);
-      let reminders = readJSON(STORAGE.reminders, []);
-      let memories = readJSON(STORAGE.memory, []);
-      let selectedDate = dateKey(new Date());
-      let visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      let memoryUnlocked = false;
-      let recognition = null;
-      let requestInProgress = false;
-      let toastTimer = null;
-
-      if (!Array.isArray(events)) events = [];
-      if (!Array.isArray(reminders)) reminders = [];
-      if (!Array.isArray(memories)) memories = [];
-
-      function dateKey(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, "0");
-        const d = String(date.getDate()).padStart(2, "0");
-        return `${y}-${m}-${d}`;
-      }
-
-      function formatDate(value, options = {}) {
-        if (!value) return "";
-        const date = new Date(`${value}T12:00:00`);
-        if (Number.isNaN(date.getTime())) return value;
-        return new Intl.DateTimeFormat("fr-FR", options).format(date);
-      }
-
-      function escapeHTML(value) {
-        return String(value ?? "").replace(/[&<>"']/g, char => ({
-          "&": "&amp;", "<": "&lt;", ">": "&gt;",
-          '"': "&quot;", "'": "&#39;"
-        })[char]);
-      }
-
-      function showToast(message) {
-        const toast = $("#toast");
-        toast.textContent = message;
-        toast.classList.add("visible");
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toast.classList.remove("visible"), 3000);
-      }
-
-      function openModal(id) {
-        const modal = document.getElementById(id);
-        if (!modal) return;
-        modal.classList.add("open");
-        const focusable = modal.querySelector("input, textarea, button");
-        if (focusable) setTimeout(() => focusable.focus(), 60);
-      }
-
-      function closeModal(id) {
-        document.getElementById(id)?.classList.remove("open");
-      }
-
-      $$("[data-close]").forEach(button => {
-        button.addEventListener("click", () => closeModal(button.dataset.close));
-      });
-
-      $$(".modal").forEach(modal => {
-        modal.addEventListener("click", event => {
-          if (event.target === modal) modal.classList.remove("open");
-        });
-      });
-
-      document.addEventListener("keydown", event => {
-        if (event.key === "Escape") {
-          $$(".modal.open").forEach(modal => modal.classList.remove("open"));
-        }
-      });
-
-      // Apparence et réglages
-      function applyTheme(theme) {
-        const allowed = ["default", "mars", "aurora", "neon", "eclipse", "solar"];
-        const value = allowed.includes(theme) ? theme : "default";
-        document.body.classList.remove("theme-mars", "theme-aurora", "theme-neon", "theme-eclipse", "theme-solar");
-        if (value !== "default") document.body.classList.add(`theme-${value}`);
-        localStorage.setItem(STORAGE.theme, value);
-
-        $$(".theme-option").forEach(button => {
-          button.classList.toggle("active", button.dataset.theme === value);
-        });
-      }
-
-      function applySettings() {
-        document.body.classList.toggle("light", Boolean(settings.light));
-        $("#lightMode").checked = Boolean(settings.light);
-        $("#voiceSetting").checked = Boolean(settings.voice);
-        saveJSON(STORAGE.settings, settings);
-      }
-
-      applyTheme(localStorage.getItem(STORAGE.theme) || "default");
-      applySettings();
-
-      $$(".theme-option").forEach(button => {
-        button.addEventListener("click", () => applyTheme(button.dataset.theme));
-      });
-
-      $("#lightMode").addEventListener("change", event => {
-        settings.light = event.target.checked;
-        applySettings();
-      });
-
-      $("#voiceSetting").addEventListener("change", event => {
-        settings.voice = event.target.checked;
-        applySettings();
-      });
-
-      $("#settingsOpen").addEventListener("click", () => openModal("settingsModal"));
-
-      $("#notificationPermission").addEventListener("click", async () => {
-        if (!("Notification" in window)) {
-          showToast("Les notifications ne sont pas disponibles dans ce navigateur.");
-          return;
-        }
-        try {
-          const permission = await Notification.requestPermission();
-          showToast(permission === "granted"
-            ? "Notifications autorisées."
-            : "Notifications non autorisées.");
-        } catch {
-          showToast("Impossible d'activer les notifications.");
-        }
-      });
-
-      $("#resetLocalData").addEventListener("click", () => {
-        const ok = confirm("Effacer l'agenda, les rappels, la mémoire, la conversation et les préférences de NOVA sur ce navigateur ?");
-        if (!ok) return;
-
-        Object.values(STORAGE).forEach(key => localStorage.removeItem(key));
-        events = [];
-        reminders = [];
-        memories = [];
-        settings = { ...DEFAULT_SETTINGS };
-        memoryUnlocked = false;
-        applyTheme("default");
-        applySettings();
-        renderCalendar();
-        renderReminders();
-        renderMemory();
-        renderChat();
-        closeModal("settingsModal");
-        showToast("Données locales réinitialisées.");
-      });
-
-      // Conversation
-      let chatMessages = readJSON(STORAGE.chat, []);
-      if (!Array.isArray(chatMessages)) chatMessages = [];
-      chatMessages = chatMessages.filter(item =>
-        item && ["assistant", "user"].includes(item.role) && typeof item.text === "string"
-      ).slice(-80);
-
-      function renderChat() {
-        const chat = $("#chat");
-        chat.replaceChildren();
-
-        if (chatMessages.length === 0) {
-          const welcome = document.createElement("article");
-          welcome.className = "message assistant";
-          welcome.innerHTML = '<div class="message-label">NOVA</div><p>Bonjour. Comment puis-je t’aider aujourd’hui ?</p>';
-          chat.appendChild(welcome);
-        } else {
-          chatMessages.forEach(message => appendMessage(message.role, message.text, false));
-        }
-      }
-
-      function appendMessage(role, text, persist = true) {
-        const article = document.createElement("article");
-        article.className = `message ${role}`;
-
-        const label = document.createElement("div");
-        label.className = "message-label";
-        label.textContent = role === "assistant" ? "NOVA" : "Vous";
-
-        const content = document.createElement("p");
-        content.textContent = text;
-
-        article.append(label, content);
-        $("#chat").appendChild(article);
-
-        if (persist) {
-          chatMessages.push({ role, text, time: Date.now() });
-          chatMessages = chatMessages.slice(-80);
-          saveJSON(STORAGE.chat, chatMessages);
-        }
-
-        article.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
-
-      function setStatus(message) {
-        $("#statusLine").textContent = message;
-      }
-
-      function setLoading(loading) {
-        requestInProgress = loading;
-        $("#sendButton").disabled = loading;
-        $("#typing").hidden = !loading;
-        setStatus(loading ? "NOVA réfléchit…" : "Prêt à discuter");
-      }
-
-      function readAloud(text) {
-        if (!settings.voice || !("speechSynthesis" in window)) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "fr-FR";
-        utterance.rate = 1;
-        window.speechSynthesis.speak(utterance);
-      }
-
-      async function sendMessage(text) {
-        const message = text.trim();
-        if (!message || requestInProgress) return;
-
-        appendMessage("user", message);
-        $("#messageInput").value = "";
-        resizeTextarea();
-        setLoading(true);
-
-        try {
-          const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message })
-          });
-
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            throw new Error(data.detail || data.error || `Erreur serveur (${response.status})`);
-          }
-
-          const answer =
-            (typeof data.response === "string" && data.response) ||
-            (typeof data.reply === "string" && data.reply) ||
-            (typeof data.message === "string" && data.message) ||
-            (typeof data.text === "string" && data.text) ||
-            "";
-
-          if (!answer) {
-            throw new Error("Le serveur n'a pas renvoyé de réponse lisible.");
-          }
-
-          appendMessage("assistant", answer);
-          readAloud(answer);
-        } catch (error) {
-          const errorMessage = error instanceof TypeError
-            ? "Impossible de joindre NOVA. Vérifie ta connexion et que le serveur est en ligne."
-            : `Je n'ai pas pu répondre. ${error.message}`;
-
-          appendMessage("assistant", errorMessage);
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      $("#chatForm").addEventListener("submit", event => {
-        event.preventDefault();
-        sendMessage($("#messageInput").value);
-      });
-
-      function resizeTextarea() {
-        const input = $("#messageInput");
-        input.style.height = "auto";
-        input.style.height = `${Math.min(input.scrollHeight, 150)}px`;
-      }
-
-      $("#messageInput").addEventListener("input", resizeTextarea);
-      $("#messageInput").addEventListener("keydown", event => {
-        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
-          event.preventDefault();
-          $("#chatForm").requestSubmit();
-        }
-      });
-
-      $("#clearChat").addEventListener("click", () => {
-        if (!confirm("Effacer la conversation enregistrée sur cet appareil ?")) return;
-        chatMessages = [];
-        saveJSON(STORAGE.chat, chatMessages);
-        renderChat();
-        showToast("Conversation effacée.");
-      });
-
-      $("#voiceButton").addEventListener("click", async () => {
-        if (!("speechSynthesis" in window)) {
-          showToast("La lecture vocale n'est pas prise en charge.");
-          return;
-        }
-        settings.voice = !settings.voice;
-        applySettings();
-
-        if (!settings.voice) {
-          window.speechSynthesis.cancel();
-          showToast("Lecture vocale désactivée.");
-        } else {
-          const latest = [...chatMessages].reverse().find(item => item.role === "assistant");
-          if (latest) readAloud(latest.text);
-          showToast("Lecture vocale activée.");
-        }
-      });
-
-      $("#micButton").addEventListener("click", () => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          showToast("La dictée vocale n'est pas prise en charge ici. Essaie un navigateur compatible.");
-          return;
-        }
-
-        if (recognition) {
-          recognition.stop();
-          recognition = null;
-          return;
-        }
-
-        recognition = new SpeechRecognition();
-        recognition.lang = "fr-FR";
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => setStatus("Écoute en cours…");
-        recognition.onresult = event => {
-          $("#messageInput").value = event.results[0][0].transcript;
-          resizeTextarea();
-          $("#messageInput").focus();
-          setStatus("Dictée terminée");
-        };
-        recognition.onerror = () => {
-          setStatus("Dictée indisponible");
-          showToast("La dictée n'a pas pu démarrer. Vérifie l'autorisation du microphone.");
-        };
-        recognition.onend = () => {
-          recognition = null;
-          if (!requestInProgress) setStatus("Prêt à discuter");
-        };
-
-        try {
-          recognition.start();
-        } catch {
-          recognition = null;
-          showToast("Impossible de démarrer le microphone.");
-        }
-      });
-
-      $("#quickPlan").addEventListener("click", () => openModal("agendaModal"));
-      $("#dashboardAgenda").addEventListener("click", () => openModal("agendaModal"));
-      $("#agendaOpen").addEventListener("click", () => openModal("agendaModal"));
-
-      $("#quickIdeas").addEventListener("click", () => {
-        $("#messageInput").value = "Aide-moi à trouver des idées pour un nouveau projet.";
-        resizeTextarea();
-        $("#messageInput").focus();
-      });
-
-      $("#quickWeather").addEventListener("click", () => {
-        $("#cityInput").focus();
-        $("#cityInput").scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-
-      // Agenda
-      function saveEvents() {
-        saveJSON(STORAGE.agenda, events);
-        renderCalendar();
-        renderReminders();
-      }
-
-      function renderCalendar() {
-        $("#calendarMonth").textContent = new Intl.DateTimeFormat("fr-FR", {
-          month: "long", year: "numeric"
-        }).format(visibleMonth);
-
-        const days = $("#calendarDays");
-        days.replaceChildren();
-
-        const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
-        const offset = (firstDay.getDay() + 6) % 7;
-        const start = new Date(firstDay);
-        start.setDate(start.getDate() - offset);
-
-        const todayKey = dateKey(new Date());
-
-        for (let i = 0; i < 42; i++) {
-          const date = new Date(start);
-          date.setDate(start.getDate() + i);
-          const key = dateKey(date);
-          const dayEvents = events.filter(item => item.date === key);
-
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = "calendar-day";
-          button.textContent = String(date.getDate());
-          button.setAttribute("aria-label", formatDate(key, {
-            weekday: "long", day: "numeric", month: "long", year: "numeric"
-          }));
-
-          if (date.getMonth() !== visibleMonth.getMonth()) button.classList.add("outside");
-          if (key === todayKey) button.classList.add("today");
-          if (key === selectedDate) button.classList.add("selected");
-          if (dayEvents.length) button.classList.add("has-event");
-
-          button.addEventListener("click", () => {
-            selectedDate = key;
-            visibleMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-            renderCalendar();
-          });
-
-          days.appendChild(button);
-        }
-
-        $("#selectedDateLabel").textContent = formatDate(selectedDate, {
-          weekday: "long", day: "numeric", month: "long"
-        });
-
-        const selectedEvents = events
-          .filter(item => item.date === selectedDate)
-          .sort((a, b) => (a.time || "").localeCompare(b.time || ""));
-
-        renderItemList($("#dayEvents"), selectedEvents, {
-          empty: "Aucun événement pour cette date.",
-          type: "event"
-        });
-
-        const upcoming = events
-          .filter(item => item.date >= todayKey)
-          .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
-          .slice(0, 8);
-
-        renderItemList($("#allEvents"), upcoming, {
-          empty: "Aucun événement à venir.",
-          type: "event"
-        });
-      }
-
-      $("#prevMonth").addEventListener("click", () => {
-        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
-        renderCalendar();
-      });
-
-      $("#nextMonth").addEventListener("click", () => {
-        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
-        renderCalendar();
-      });
-
-      function openNewEvent() {
-        $("#eventForm").reset();
-        $("#eventDate").value = selectedDate || dateKey(new Date());
-        $("#eventTime").value = "09:00";
-        openModal("eventModal");
-      }
-
-      $("#addEventOpen").addEventListener("click", openNewEvent);
-
-      $("#eventForm").addEventListener("submit", event => {
-        event.preventDefault();
-        const name = $("#eventName").value.trim();
-        const date = $("#eventDate").value;
-        const time = $("#eventTime").value;
-
-        if (!name || !date || !time) return;
-
-        events.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-          title: name,
-          date,
-          time,
-          notes: $("#eventNotes").value.trim()
-        });
-
-        selectedDate = date;
-        visibleMonth = new Date(`${date}T12:00:00`);
-        saveEvents();
-        closeModal("eventModal");
-        showToast("Événement enregistré.");
-      });
-
-      // Rappels
-      function saveReminders() {
-        saveJSON(STORAGE.reminders, reminders);
-        renderReminders();
-      }
-
-      function renderReminders() {
-        const today = dateKey(new Date());
-        const upcoming = reminders
-          .filter(item => !item.done)
-          .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
-
-        $("#reminderSummary").textContent = upcoming.length
-          ? `${upcoming.length} rappel${upcoming.length > 1 ? "s" : ""} à suivre`
-          : "Tu n'as aucun rappel en attente.";
-
-        renderItemList($("#upcomingReminders"), upcoming.slice(0, 5), {
-          empty: "Aucun rappel pour le moment.",
-          type: "reminder"
-        });
-      }
-
-      function openNewReminder() {
-        $("#reminderForm").reset();
-        $("#reminderDate").value = dateKey(new Date());
-        $("#reminderTime").value = "18:00";
-        openModal("reminderModal");
-      }
-
-      $("#addReminderOpen").addEventListener("click", openNewReminder);
-
-      $("#reminderForm").addEventListener("submit", event => {
-        event.preventDefault();
-
-        const title = $("#reminderName").value.trim();
-        const date = $("#reminderDate").value;
-        const time = $("#reminderTime").value;
-        if (!title || !date || !time) return;
-
-        reminders.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-          title, date, time, done: false
-        });
-
-        saveReminders();
-        closeModal("reminderModal");
-        showToast("Rappel enregistré.");
-      });
-
-      function renderItemList(container, items, options) {
-        container.replaceChildren();
-
-        if (!items.length) {
-          const empty = document.createElement("div");
-          empty.className = "empty";
-          empty.textContent = options.empty;
-          container.appendChild(empty);
-          return;
-        }
-
-        items.forEach(item => {
-          const wrapper = document.createElement("div");
-          wrapper.className = "list-item";
-
-          const content = document.createElement("div");
-          content.className = "list-item-content";
-
-          const title = document.createElement("div");
-          title.className = "list-item-title";
-          title.textContent = item.title || "Sans titre";
-
-          const meta = document.createElement("div");
-          meta.className = "list-item-meta";
-          meta.textContent = [
-            formatDate(item.date, { day: "numeric", month: "short", year: "numeric" }),
-            item.time || ""
-          ].filter(Boolean).join(" · ");
-
-          content.append(title, meta);
-
-          if (item.notes) {
-            const notes = document.createElement("div");
-            notes.className = "list-item-meta";
-            notes.textContent = item.notes;
-            content.appendChild(notes);
-          }
-
-          const actions = document.createElement("div");
-          actions.className = "list-item-actions";
-
-          if (options.type === "event") {
-            const remove = document.createElement("button");
-            remove.className = "button small danger";
-            remove.type = "button";
-            remove.textContent = "Supprimer";
-            remove.addEventListener("click", () => {
-              if (!confirm("Supprimer cet événement ?")) return;
-              events = events.filter(entry => entry.id !== item.id);
-              saveEvents();
-              showToast("Événement supprimé.");
-            });
-            actions.appendChild(remove);
-          }
-
-          if (options.type === "reminder") {
-            const done = document.createElement("button");
-            done.className = "button small";
-            done.type = "button";
-            done.textContent = "Terminé";
-            done.addEventListener("click", () => {
-              reminders = reminders.filter(entry => entry.id !== item.id);
-              saveReminders();
-              showToast("Rappel terminé.");
-            });
-
-            const remove = document.createElement("button");
-            remove.className = "button small danger";
-            remove.type = "button";
-            remove.textContent = "Supprimer";
-            remove.addEventListener("click", () => {
-              reminders = reminders.filter(entry => entry.id !== item.id);
-              saveReminders();
-              showToast("Rappel supprimé.");
-            });
-
-            actions.append(done, remove);
-          }
-
-          wrapper.append(content, actions);
-          container.appendChild(wrapper);
-        });
-      }
-
-      // Mémoire locale
-      function openMemory() {
-        $("#memoryPin").value = "";
-        $("#memoryLock").hidden = false;
-        $("#memoryContent").hidden = true;
-        memoryUnlocked = false;
-        openModal("memoryModal");
-      }
-
-      $("#memoryOpen").addEventListener("click", openMemory);
-      $("#dashboardMemory").addEventListener("click", openMemory);
-
-      function getMemoryPin() {
-        return localStorage.getItem(STORAGE.memoryPin);
-      }
-
-      $("#setupMemoryPin").addEventListener("click", () => {
-        const pin = $("#memoryPin").value.trim();
-
-        if (!/^\d{4,12}$/.test(pin)) {
-          showToast("Choisis un code composé de 4 à 12 chiffres.");
-          return;
-        }
-
-        if (getMemoryPin()) {
-          showToast("Un code existe déjà. Déverrouille la mémoire d'abord.");
-          return;
-        }
-
-        localStorage.setItem(STORAGE.memoryPin, pin);
-        memoryUnlocked = true;
-        showMemoryContent();
-        showToast("Code local créé.");
-      });
-
-      $("#unlockMemory").addEventListener("click", () => {
-        const stored = getMemoryPin();
-        const entered = $("#memoryPin").value.trim();
-
-        if (!stored) {
-          showToast("Crée d'abord un code pour verrouiller la mémoire.");
-          return;
-        }
-
-        if (entered !== stored) {
-          showToast("Code incorrect.");
-          return;
-        }
-
-        memoryUnlocked = true;
-        showMemoryContent();
-      });
-
-      function showMemoryContent() {
-        $("#memoryLock").hidden = true;
-        $("#memoryContent").hidden = false;
-        renderMemory();
-      }
-
-      $("#lockMemory").addEventListener("click", () => {
-        memoryUnlocked = false;
-        $("#memoryLock").hidden = false;
-        $("#memoryContent").hidden = true;
-        $("#memoryPin").value = "";
-        showToast("Mémoire verrouillée.");
-      });
-
-      $("#memoryForm").addEventListener("submit", event => {
-        event.preventDefault();
-        if (!memoryUnlocked) return;
-
-        const text = $("#memoryText").value.trim();
-        if (!text) return;
-
-        memories.unshift({
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-          text,
-          createdAt: new Date().toISOString()
-        });
-
-        saveJSON(STORAGE.memory, memories);
-        $("#memoryText").value = "";
-        renderMemory();
-        showToast("Note enregistrée.");
-      });
-
-      function renderMemory() {
-        const list = $("#memoryList");
-        list.replaceChildren();
-
-        if (!memoryUnlocked) return;
-
-        if (!memories.length) {
-          const empty = document.createElement("div");
-          empty.className = "empty";
-          empty.textContent = "Ta mémoire est vide.";
-          list.appendChild(empty);
-          return;
-        }
-
-        memories.forEach(memory => {
-          const item = document.createElement("div");
-          item.className = "list-item";
-
-          const content = document.createElement("div");
-          content.className = "list-item-content";
-
-          const text = document.createElement("div");
-          text.className = "list-item-title";
-          text.textContent = memory.text;
-
-          const meta = document.createElement("div");
-          meta.className = "list-item-meta";
-          meta.textContent = memory.createdAt
-            ? new Date(memory.createdAt).toLocaleDateString("fr-FR")
-            : "";
-
-          content.append(text, meta);
-
-          const remove = document.createElement("button");
-          remove.className = "button small danger";
-          remove.type = "button";
-          remove.textContent = "Supprimer";
-          remove.addEventListener("click", () => {
-            memories = memories.filter(entry => entry.id !== memory.id);
-            saveJSON(STORAGE.memory, memories);
-            renderMemory();
-            showToast("Note supprimée.");
-          });
-
-          item.append(content, remove);
-          list.appendChild(item);
-        });
-      }
-
-      // Météo : utilise le backend de NOVA.
-      async function fetchWeather(city) {
-        const query = city.trim();
-        if (!query) {
-          showToast("Saisis le nom d'une ville.");
-          return;
-        }
-
-        $("#weatherCity").textContent = `Recherche : ${query}`;
-        $("#weatherDescription").textContent = "Chargement…";
-
-        try {
-          const response = await fetch(`/api/weather?city=${encodeURIComponent(query)}`, {
-            headers: { "Accept": "application/json" }
-          });
-
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            throw new Error(data.detail || data.error || "Météo indisponible.");
-          }
-
-          const temperature = data.temperature ?? data.temp ?? data.temperature_c;
-          const description = data.description ?? data.condition ?? data.weather ?? "Conditions actuelles";
-          const returnedCity = data.city ?? data.name ?? query;
-
-          if (temperature === undefined || temperature === null) {
-            throw new Error("Le format de réponse météo ne contient pas de température.");
-          }
-
-          $("#weatherCity").textContent = returnedCity;
-          $("#weatherTemp").textContent = `${Math.round(Number(temperature))}°`;
-          $("#weatherDescription").textContent = String(description);
-          settings.city = query;
-          saveJSON(STORAGE.settings, settings);
-        } catch (error) {
-          $("#weatherCity").textContent = query;
-          $("#weatherTemp").textContent = "--°";
-          $("#weatherDescription").textContent = error.message;
-          showToast("Impossible de récupérer la météo.");
-        }
-      }
-
-      $("#weatherForm").addEventListener("submit", event => {
-        event.preventDefault();
-        fetchWeather($("#cityInput").value);
-      });
-
-      $("#refreshWeather").addEventListener("click", () => fetchWeather(settings.city || "Grenoble"));
-
-      $$("[data-city]").forEach(button => {
-        button.addEventListener("click", () => {
-          $("#cityInput").value = button.dataset.city;
-          fetchWeather(button.dataset.city);
-        });
-      });
-
-      // Export JSON des données locales
-      $("#exportData").addEventListener("click", () => {
-        const data = {
-          exportedAt: new Date().toISOString(),
-          events,
-          reminders,
-          memories,
-          settings,
-          chat: chatMessages
-        };
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: "application/json;charset=utf-8"
-        });
-
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = `nova-export-${dateKey(new Date())}.json`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(url);
-        showToast("Export préparé.");
-      });
-
-      // Initialisation
-      renderChat();
-      renderCalendar();
-      renderReminders();
-
-      $("#cityInput").value = settings.city || "Grenoble";
-
-      // Les notifications sont vérifiées lorsque l'application est ouverte.
-      // Les rappels ne peuvent pas garantir une alerte si le navigateur est fermé.
-      function checkDueReminders() {
-        if (!("Notification" in window) || Notification.permission !== "granted") return;
-
-        const now = new Date();
-        const currentDate = dateKey(now);
-        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-        reminders.forEach(reminder => {
-          const key = `novaNotified_${reminder.id}`;
-          if (reminder.done || reminder.date !== currentDate || reminder.time > currentTime) return;
-          if (sessionStorage.getItem(key)) return;
-
-          try {
-            new Notification("NOVA — Rappel", {
-              body: reminder.title,
-              tag: reminder.id
-            });
-            sessionStorage.setItem(key, "1");
-          } catch {
-            // Les notifications peuvent être bloquées par le navigateur.
-          }
-        });
-      }
-
-      checkDueReminders();
-      setInterval(checkDueReminders, 30000);
-
-      // Enregistrement de l'agenda sous le format utilisé par NOVA V1.
-      saveJSON(STORAGE.agenda, events);
-      saveJSON(STORAGE.reminders, reminders);
-    })();
-  </script>
+<div class="app">
+<header class="topbar">
+ <div class="brand"><div class="logo">N</div><div><h1>NOVA</h1><p>ASSISTANTE PERSONNELLE</p></div></div>
+ <div class="top-actions">
+  <button class="icon" id="memoryOpen" title="Mémoire" aria-label="Mémoire">◇</button>
+  <button class="icon" id="agendaOpen" title="Agenda" aria-label="Agenda">▦</button>
+  <button class="icon" id="settingsOpen" title="Réglages" aria-label="Réglages">⚙</button>
+ </div>
+</header>
+<div class="layout">
+<main class="panel chat-panel">
+ <div class="panel-head"><h2>Conversation</h2><span class="status" id="status">Prête</span></div>
+ <div class="messages" id="messages" aria-live="polite">
+  <div class="welcome" id="welcome"><div class="orb"></div><h2>Bonjour, je suis NOVA.</h2><p>Je peux t'aider à réfléchir, organiser tes idées et retenir les informations que tu choisis de conserver.</p><div class="quick"><button class="chip" data-prompt="Aide-moi à organiser ma journée">Organiser ma journée</button><button class="chip" data-prompt="Aide-moi à avancer sur mon projet NOVA">Mon projet</button><button class="chip" data-prompt="Comment fonctionne ta mémoire ?">La mémoire</button></div></div>
+ </div>
+ <div class="composer-wrap">
+  <form class="composer" id="chatForm"><textarea id="messageInput" rows="1" maxlength="4000" placeholder="Écris à NOVA…" aria-label="Message"></textarea><button class="icon" type="button" id="micBtn" aria-label="Dicter" title="Dictée vocale">⌁</button><button class="send" id="sendBtn" aria-label="Envoyer">↑</button></form>
+  <div class="composer-tools"><span>Souvenirs stockés sur cet appareil</span><div class="tool-row"><button class="tool" id="voiceToggle">Voix : activée</button><button class="tool" id="clearChat">Effacer le chat</button></div></div>
+ </div>
+</main>
+<aside class="sidebar">
+ <section class="panel side-card"><div class="side-title"><h3>Météo</h3><span class="muted">Actuelle</span></div><div class="big" id="weatherTemp">--°</div><div class="muted" id="weatherDesc">Choisis une ville</div><div class="row" style="margin-top:12px"><input class="field" id="weatherCity" value="Grenoble" aria-label="Ville"><button class="secondary" id="weatherBtn">OK</button></div><div class="muted" id="weatherExtra" style="margin-top:8px"></div></section>
+ <section class="panel side-card"><div class="side-title"><h3>Marchés</h3><span class="muted">Indicatif</span></div><select class="field" id="marketSymbol"><option value="AAPL">Apple · AAPL</option><option value="TSLA">Tesla · TSLA</option><option value="NVDA">Nvidia · NVDA</option><option value="MSFT">Microsoft · MSFT</option><option value="AMZN">Amazon · AMZN</option><option value="GOOGL">Google · GOOGL</option><option value="META">Meta · META</option></select><div class="big" id="marketPrice" style="margin-top:8px">—</div><div class="muted" id="marketChange">Cours non chargé</div><button class="secondary side-btn" id="marketBtn">Actualiser</button></section>
+ <section class="panel side-card"><div class="side-title"><h3>Coffre mémoire</h3><button class="tool" id="addMemoryOpen">+ Ajouter</button></div><div class="big" id="memoryCount">0</div><div class="muted">souvenir(s) enregistré(s)</div><button class="secondary side-btn" id="memoryOpen2">Ouvrir la mémoire</button></section>
+ <section class="panel side-card"><div class="side-title"><h3>Prochain rappel</h3><span class="muted" id="agendaCount">0 au total</span></div><div class="muted" id="nextAgenda">Aucun rappel prévu.</div><button class="secondary side-btn" id="agendaOpen2">Ouvrir l'agenda</button></section>
+</aside>
+</div>
+</div>
+
+<div class="modal-backdrop" id="memoryModal" role="dialog" aria-modal="true" aria-labelledby="memoryTitle"><section class="modal">
+ <div class="modal-head"><h2 id="memoryTitle">Coffre mémoire</h2><button class="icon close-modal" aria-label="Fermer">×</button></div><div class="modal-body">
+ <div class="hero"><h3>Les souvenirs de NOVA</h3><p>Les souvenirs proposés par l'IA restent en attente jusqu'à ce que tu les acceptes. Tu peux les modifier ou les supprimer.</p><div class="muted" id="memoryStats" style="margin-top:8px"></div></div>
+ <div class="row"><input class="field" id="memorySearch" placeholder="Rechercher…" aria-label="Rechercher"><select class="field" id="memoryFilter" aria-label="Catégorie"><option value="all">Toutes les catégories</option><option value="profil">Profil</option><option value="preferences">Préférences</option><option value="projets">Projets</option><option value="objectifs">Objectifs</option><option value="autre">Autres</option></select></div>
+ <div class="memory-controls"><button class="primary" id="addMemoryBtn">+ Nouveau souvenir</button><button class="secondary" id="exportMemoryBtn">Exporter</button><button class="secondary" id="importMemoryBtn">Importer</button><button class="secondary" id="clearMemoryBtn">Tout effacer</button><input type="file" id="importMemoryFile" accept=".json,application/json" hidden></div>
+ <div id="pendingMemories"></div><div class="memory-grid" id="memoryGrid"></div>
+ </div></section></div>
+
+<div class="modal-backdrop" id="agendaModal" role="dialog" aria-modal="true" aria-labelledby="agendaTitle"><section class="modal">
+ <div class="modal-head"><h2 id="agendaTitle">Agenda & rappels</h2><button class="icon close-modal" aria-label="Fermer">×</button></div><div class="modal-body">
+ <div class="hero"><h3>Garde le fil de tes projets</h3><p>Les rappels sont vérifiés lorsque cette page est ouverte. Ils ne remplacent pas une notification garantie du système.</p></div>
+ <form id="agendaForm"><div class="settings-grid"><div class="setting"><label for="agendaName">Titre</label><input class="field" id="agendaName" required maxlength="120" placeholder="Avancer sur NOVA"></div><div class="setting"><label for="agendaDate">Date et heure</label><input class="field" id="agendaDate" type="datetime-local" required></div><div class="setting"><label for="agendaKind">Type</label><select class="field" id="agendaKind"><option value="rappel">Rappel</option><option value="evenement">Événement</option><option value="tache">Tâche</option></select></div><div class="setting"><label for="agendaNote">Note (facultatif)</label><input class="field" id="agendaNote" maxlength="240"></div></div><button class="primary side-btn" type="submit">Ajouter</button></form><div class="agenda-list" id="agendaList"></div>
+ </div></section></div>
+
+<div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle"><section class="modal">
+ <div class="modal-head"><h2 id="settingsTitle">Réglages NOVA</h2><button class="icon close-modal" aria-label="Fermer">×</button></div><div class="modal-body">
+ <div class="settings-grid">
+  <div class="setting"><label>Thèmes dégradés</label><div class="theme-list" id="themeList">
+   <button class="swatch" style="--swatch:linear-gradient(120deg,#8c7bff,#48d8e8,#d88cff)" data-theme="default" aria-label="Violet cyan"></button>
+   <button class="swatch" style="--swatch:linear-gradient(120deg,#ff876a,#ffc46b,#ff6d9e)" data-theme="mars" aria-label="Mars"></button>
+   <button class="swatch" style="--swatch:linear-gradient(120deg,#55e6c1,#65a8ff,#c78bff)" data-theme="aurora" aria-label="Aurore"></button>
+   <button class="swatch" style="--swatch:linear-gradient(120deg,#f06bff,#6cf7ff,#9b7bff)" data-theme="neon" aria-label="Néon"></button>
+   <button class="swatch" style="--swatch:linear-gradient(120deg,#5664b8,#d5dcff,#8d7cff)" data-theme="eclipse" aria-label="Éclipse"></button>
+   <button class="swatch" style="--swatch:linear-gradient(120deg,#ffc857,#ff8f70,#f5dc7d)" data-theme="solar" aria-label="Solaire"></button>
+  </div></div>
+  <div class="setting"><label for="appearance">Apparence</label><select class="field" id="appearance"><option value="dark">Sombre</option><option value="light">Claire</option></select></div>
+  <div class="setting"><label for="voiceSelect">Voix du navigateur</label><select class="field" id="voiceSelect"><option value="">Voix par défaut</option></select></div>
+  <div class="setting"><label>Tester la voix</label><button class="secondary side-btn" id="testVoice">Lire un exemple</button></div>
+  <div class="setting"><label>Export complet</label><button class="secondary side-btn" id="exportAll">Exporter mémoire + agenda</button></div>
+  <div class="setting"><label>Serveur</label><div class="muted" id="serverStatus">Vérification…</div><button class="secondary side-btn" id="checkServer">Vérifier</button></div>
+ </div></div></section></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+"use strict";
+const $=id=>document.getElementById(id);
+const K={mem:"novaMemoryV2",agenda:"novaAgendaV2",theme:"novaThemeV2",appearance:"novaAppearanceV2",voice:"novaVoiceV2",chat:"novaChatV2"};
+const CATS={profil:"Profil",preferences:"Préférences",projets:"Projets",objectifs:"Objectifs",autre:"Autre"};
+const COLORS={profil:"#72c8ff",preferences:"#b58aff",projets:"#66e0c0",objectifs:"#ffca70",autre:"#ff86ad"};
+const read=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch{return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{notify("Stockage local indisponible.")}};
+const id=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const clean=s=>String(s||"").replace(/\s+/g," ").trim().slice(0,500);
+const escapeHTML=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let memories=read(K.mem,[]),agenda=read(K.agenda,[]),pending=[],busy=false,voiceOn=read(K.voice,true),recognition=null,voices=[],lastReminderCheck=Date.now();
+
+function notify(message){$("toast").textContent=message;$("toast").classList.add("show");clearTimeout(notify.timer);notify.timer=setTimeout(()=>$("toast").classList.remove("show"),2600)}
+function categoryFor(text){const t=text.toLowerCase();if(/préf|prefer|aime|déteste|deteste|style|format|réponds|reponds/.test(t))return"preferences";if(/projet|application|site|développ|developp|travaille sur/.test(t))return"projets";if(/objectif|apprendre|réussir|reussir|but|je veux devenir/.test(t))return"objectifs";if(/je m'appelle|je suis|mon prénom|mon prenom|j'habite|j habite/.test(t))return"profil";return"autre"}
+function addMemory(text,category="autre",source="manual"){
+ const t=clean(text);if(!t)return false;
+ if(memories.some(m=>m.text.toLowerCase()===t.toLowerCase()))return false;
+ memories.unshift({id:id(),text:t,category:CATS[category]?category:categoryFor(t),source,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+ memories=memories.slice(0,200);save(K.mem,memories);renderMemories();return true;
+}
+function explicitMemory(text){
+ const patterns=[
+  /^(?:nova[, ]*)?(?:retiens|mémorise|memorise|garde en mémoire|garde en memoire|n'oublie pas|souviens-toi|souviens toi)\s+(?:que\s+)?(.+)$/i,
+  /^(?:peux-tu|peux tu|tu peux)\s+(?:te\s+)?souvenir\s+que\s+(.+)$/i
+ ];
+ for(const p of patterns){const m=text.trim().match(p);if(m?.[1])return clean(m[1].replace(/[.!?]+$/,""))}
+ return null;
+}
+function memoryContext(){
+ const useful=memories.slice(0,40).map(m=>({text:m.text,category:CATS[m.category]||"Autre"}));
+ const upcoming=agenda.filter(a=>new Date(a.date).getTime()>Date.now()-86400000).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,10).map(a=>({title:a.title,date:a.date,type:a.kind,note:a.note||""}));
+ return JSON.stringify({souvenirs:useful,agenda:upcoming}).slice(0,5000);
+}
+function renderMemories(){
+ $("memoryCount").textContent=memories.length;$("memoryStats").textContent=`${memories.length} souvenir(s) · stockage local`;
+ const q=$("memorySearch").value.toLowerCase().trim(),filter=$("memoryFilter").value;
+ const list=memories.filter(m=>(filter==="all"||m.category===filter)&&m.text.toLowerCase().includes(q));
+ $("memoryGrid").innerHTML=list.length?list.map(m=>`<article class="memory-card" style="--gem:${COLORS[m.category]||COLORS.autre}">
+ <div class="gem-stage"><div class="gem" aria-hidden="true"></div><div><div class="gem-label">${escapeHTML(CATS[m.category]||"Autre")}</div><div class="muted">${escapeHTML(new Date(m.updatedAt||m.createdAt).toLocaleDateString("fr-FR"))}</div></div></div>
+ <div class="memory-text">${escapeHTML(m.text)}</div><div class="memory-meta"><span>${m.source==="ai"?"Proposé par NOVA":m.source==="explicit"?"Demandé":"Ajout manuel"}</span><span>◆</span></div>
+ <div class="memory-actions"><button data-edit="${escapeHTML(m.id)}">Modifier</button><button data-delete="${escapeHTML(m.id)}">Supprimer</button></div></article>`).join(""):`<div class="empty">${memories.length?"Aucun résultat.":"Le coffre est vide. Tu peux ajouter un souvenir ou demander à NOVA de retenir une information."}</div>`;
+ $("pendingMemories").innerHTML=pending.length?`<div class="setting" style="margin:12px 0"><strong>Propositions de NOVA</strong><p class="muted">Valide uniquement les informations que tu souhaites conserver.</p>${pending.map((p,i)=>`<div class="agenda-entry"><div><strong>${escapeHTML(p.text)}</strong><span>${escapeHTML(CATS[p.category]||"Autre")}</span></div><div class="tool-row"><button class="tool" data-accept="${i}">Accepter</button><button class="tool" data-reject="${i}">Ignorer</button></div></div>`).join("")}</div>`:"";
+ updateAgendaSummary();
+}
+function openModal(id){$(id).classList.add("open");document.body.style.overflow="hidden"}
+function closeModal(el){el.classList.remove("open");if(!document.querySelector(".modal-backdrop.open"))document.body.style.overflow=""}
+document.querySelectorAll(".close-modal").forEach(b=>b.onclick=()=>closeModal(b.closest(".modal-backdrop")));
+document.querySelectorAll(".modal-backdrop").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModal(m)}));
+$("memoryOpen").onclick=$("memoryOpen2").onclick=()=>{renderMemories();openModal("memoryModal")};
+$("agendaOpen").onclick=$("agendaOpen2").onclick=()=>{renderAgenda();openModal("agendaModal")};
+$("settingsOpen").onclick=()=>openModal("settingsModal");
+function memoryPrompt(existing=null){const value=prompt(existing?"Modifier ce souvenir :":"Que veux-tu que NOVA retienne ? ",existing?.text||"");if(value===null)return;const t=clean(value);if(!t){notify("Le souvenir est vide.");return}if(existing){existing.text=t;existing.category=categoryFor(t);existing.updatedAt=new Date().toISOString();save(K.mem,memories);renderMemories();notify("Souvenir modifié.")}else if(addMemory(t,categoryFor(t))){notify("Souvenir ajouté.")}else notify("Ce souvenir existe déjà.")}
+$("addMemoryOpen").onclick=$("addMemoryBtn").onclick=()=>memoryPrompt();
+$("memoryGrid").addEventListener("click",e=>{const ed=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");if(ed){const m=memories.find(x=>x.id===ed.dataset.edit);if(m)memoryPrompt(m)}if(del&&confirm("Supprimer ce souvenir ?")){memories=memories.filter(x=>x.id!==del.dataset.delete);save(K.mem,memories);renderMemories();notify("Souvenir supprimé.")}});
+$("pendingMemories").addEventListener("click",e=>{const a=e.target.closest("[data-accept]"),r=e.target.closest("[data-reject]");if(a){const p=pending[Number(a.dataset.accept)];if(p){addMemory(p.text,p.category,"ai");pending.splice(Number(a.dataset.accept),1);renderMemories();notify("Proposition traitée.")}}if(r){pending.splice(Number(r.dataset.reject),1);renderMemories()}});
+$("memorySearch").oninput=renderMemories;$("memoryFilter").onchange=renderMemories;
+$("clearMemoryBtn").onclick=()=>{if(confirm("Effacer tous les souvenirs locaux ?")){memories=[];pending=[];save(K.mem,memories);renderMemories();notify("Mémoire effacée.")}};
+function downloadJSON(name,obj){const url=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$("exportMemoryBtn").onclick=()=>downloadJSON("nova-memoire.json",{version:2,memories});
+$("importMemoryBtn").onclick=()=>$("importMemoryFile").click();
+$("importMemoryFile").onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const d=JSON.parse(await f.text()),items=Array.isArray(d)?d:d.memories;if(!Array.isArray(items))throw Error();items.forEach(m=>{if(m&&typeof m.text==="string")addMemory(m.text,m.category||categoryFor(m.text),"import")});notify("Import terminé.")}catch{notify("Fichier JSON invalide.")}e.target.value=""};
+function setTheme(t){document.body.classList.remove("theme-mars","theme-aurora","theme-neon","theme-eclipse","theme-solar");if(t!=="default")document.body.classList.add("theme-"+t);save(K.theme,t);document.querySelectorAll(".swatch").forEach(b=>b.classList.toggle("active",b.dataset.theme===t))}
+$("themeList").onclick=e=>{const b=e.target.closest("[data-theme]");if(b)setTheme(b.dataset.theme)};
+$("appearance").onchange=()=>{document.body.classList.toggle("light",$("appearance").value==="light");save(K.appearance,$("appearance").value)};
+function loadVoices(){if(!("speechSynthesis"in window))return;voices=speechSynthesis.getVoices();const s=$("voiceSelect"),old=read("novaVoiceName","");s.innerHTML='<option value="">Voix par défaut</option>'+voices.filter(v=>v.lang.toLowerCase().startsWith("fr")).map(v=>`<option value="${escapeHTML(v.name)}">${escapeHTML(v.name)}</option>`).join("");s.value=old}
+if("speechSynthesis"in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+$("voiceSelect").onchange=()=>save("novaVoiceName",$("voiceSelect").value);
+function speak(t){if(!voiceOn||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="fr-FR";const v=voices.find(x=>x.name===read("novaVoiceName",""));if(v)u.voice=v;u.rate=1.02;speechSynthesis.speak(u)}
+$("voiceToggle").onclick=()=>{voiceOn=!voiceOn;save(K.voice,voiceOn);$("voiceToggle").textContent=`Voix : ${voiceOn?"activée":"désactivée"}`;if(!voiceOn&&"speechSynthesis"in window)speechSynthesis.cancel()};
+$("testVoice").onclick=()=>speak("Bonjour, je suis NOVA. La synthèse vocale fonctionne.");
+function addMessage(role,text,persist=true){$("welcome")?.remove();const d=document.createElement("div");d.className="message "+role;const label=document.createElement("small");label.textContent=role==="user"?"Toi":"NOVA";const body=document.createElement("div");body.textContent=text;d.append(label,body);$("messages").append(d);$("messages").scrollTop=$("messages").scrollHeight;if(persist){const h=read(K.chat,[]);h.push({role,text,at:Date.now()});save(K.chat,h.slice(-60))}}
+function restoreChat(){const h=read(K.chat,[]);if(!h.length)return;$("welcome")?.remove();h.slice(-30).forEach(m=>addMessage(m.role==="user"?"user":"assistant",m.text,false))}
+async function sendMessage(raw){
+ const text=clean(raw);if(!text||busy)return;
+ const explicit=explicitMemory(text);
+ if(explicit){addMessage("user",text);const added=addMemory(explicit,categoryFor(explicit),"explicit");const reply=added?`C'est noté : « ${explicit} ». J'ai ajouté cette information à mon coffre mémoire.`:`Cette information est déjà dans mon coffre : « ${explicit} ».`;addMessage("assistant",reply);speak(reply);return}
+ addMessage("user",text);busy=true;$("sendBtn").disabled=true;$("status").textContent="Réflexion…";
+ const typing=document.createElement("div");typing.className="typing";typing.textContent="NOVA prépare une réponse…";$("messages").append(typing);
+ try{
+  const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,fast:false,device:"iphone",memory_context:memoryContext()})});
+  const data=await r.json();if(!r.ok)throw Error(data.detail||data.error||"Erreur serveur");
+  typing.remove();const answer=String(data.reply||"Je n'ai pas reçu de réponse.");addMessage("assistant",answer);speak(answer);
+  if(Array.isArray(data.memory_updates)){for(const p of data.memory_updates.slice(0,2)){const t=clean(typeof p==="string"?p:p?.text);const cat=typeof p==="object"&&p? p.category:"autre";if(t&&!memories.some(m=>m.text.toLowerCase()===t.toLowerCase())&&!pending.some(m=>m.text.toLowerCase()===t.toLowerCase()))pending.push({text:t,category:CATS[cat]?cat:categoryFor(t)})}renderMemories();if(pending.length)notify("NOVA propose un souvenir : vérifie-le dans le coffre mémoire.")}
+  if(data.action?.type==="weather"&&data.action.data)renderWeather(data.action.data);
+  $("status").textContent="Prête";
+ }catch(err){typing.remove();addMessage("assistant",`Connexion au serveur impossible. Vérifie /api/health. Détail : ${err.message}`);$("status").textContent="Connexion à vérifier"}
+ finally{busy=false;$("sendBtn").disabled=false;$("messageInput").focus()}
+}
+$("chatForm").onsubmit=e=>{e.preventDefault();const input=$("messageInput"),t=input.value;input.value="";input.style.height="auto";sendMessage(t)};
+$("messageInput").oninput=e=>{e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,140)+"px"};
+$("messageInput").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("chatForm").requestSubmit()}};
+document.querySelectorAll("[data-prompt]").forEach(b=>b.onclick=()=>sendMessage(b.dataset.prompt));
+$("clearChat").onclick=()=>{if(confirm("Effacer l'historique du chat ?")){save(K.chat,[]);$("messages").innerHTML='<div class="welcome" id="welcome"><div class="orb"></div><h2>Nouvelle conversation</h2><p>Tu peux commencer à discuter avec NOVA.</p></div>'}};
+$("micBtn").onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){notify("La dictée n'est pas disponible dans ce navigateur.");return}if(recognition){recognition.stop();return}recognition=new SR();recognition.lang="fr-FR";recognition.interimResults=false;recognition.onstart=()=>$("micBtn").textContent="■";recognition.onresult=e=>{$("messageInput").value=e.results[0][0].transcript;$("messageInput").dispatchEvent(new Event("input"))};recognition.onerror=()=>notify("La dictée vocale a échoué.");recognition.onend=()=>{$("micBtn").textContent="⌁";recognition=null};recognition.start()};
+function renderWeather(d){$("weatherTemp").textContent=d.temperature==null?"—":`${Math.round(d.temperature)}°`; $("weatherDesc").textContent=d.description||"Conditions actuelles";$("weatherExtra").textContent=`${d.city||""} · Humidité ${d.humidity??"—"} % · Vent ${d.wind??"—"} km/h`}
+async function loadWeather(){const city=$("weatherCity").value.trim()||"Grenoble";$("weatherDesc").textContent="Chargement…";try{const r=await fetch(`/api/weather?city=${encodeURIComponent(city)}`),d=await r.json();if(!r.ok)throw Error();renderWeather(d)}catch{$("weatherDesc").textContent="Météo indisponible";$("weatherExtra").textContent="Vérifie la ville puis réessaie."}}
+$("weatherBtn").onclick=loadWeather;$("weatherCity").onkeydown=e=>{if(e.key==="Enter")loadWeather()};
+async function loadMarket(){const s=$("marketSymbol").value;$("marketChange").textContent="Chargement…";try{const r=await fetch(`/api/market?symbol=${encodeURIComponent(s)}`),d=await r.json();if(!r.ok)throw Error();$("marketPrice").textContent=d.price==null?"—":`${Number(d.price).toLocaleString("fr-FR",{maximumFractionDigits:2})} ${d.currency||""}`;$("marketChange").textContent=d.change_percent==null?"Variation indisponible":`${d.change_percent>=0?"+":""}${Number(d.change_percent).toFixed(2)} % vs clôture précédente`}catch{$("marketPrice").textContent="—";$("marketChange").textContent="Cours indisponible."}}
+$("marketBtn").onclick=loadMarket;$("marketSymbol").onchange=loadMarket;
+$("agendaForm").onsubmit=e=>{e.preventDefault();const title=clean($("agendaName").value),date=$("agendaDate").value;if(!title||!date||!Number.isFinite(new Date(date).getTime()))return;agenda.push({id:id(),title,date:new Date(date).toISOString(),kind:$("agendaKind").value,note:clean($("agendaNote").value),notified:false});save(K.agenda,agenda);e.target.reset();renderAgenda();notify("Élément ajouté à l'agenda.")};
+function renderAgenda(){agenda.sort((a,b)=>new Date(a.date)-new Date(b.date));$("agendaList").innerHTML=agenda.length?agenda.map(a=>`<div class="agenda-entry"><div><strong>${escapeHTML(a.title)}</strong><span>${escapeHTML(new Date(a.date).toLocaleString("fr-FR"))} · ${escapeHTML(a.kind)}${a.note?" · "+escapeHTML(a.note):""}</span></div><button class="tool" data-agdel="${escapeHTML(a.id)}">Supprimer</button></div>`).join(""):'<div class="empty">Aucun événement enregistré.</div>';updateAgendaSummary()}
+$("agendaList").onclick=e=>{const b=e.target.closest("[data-agdel]");if(!b)return;agenda=agenda.filter(a=>a.id!==b.dataset.agdel);save(K.agenda,agenda);renderAgenda()};
+function updateAgendaSummary(){const upcoming=agenda.filter(a=>new Date(a.date).getTime()>Date.now()).sort((a,b)=>new Date(a.date)-new Date(b.date));$("agendaCount").textContent=`${agenda.length} au total`;const a=upcoming[0];$("nextAgenda").textContent=a?`${a.title} — ${new Date(a.date).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"})}`:"Aucun rappel à venir."}
+function checkReminders(){const now=Date.now();agenda.forEach(a=>{const t=new Date(a.date).getTime();if(!a.notified&&t<=now&&t>lastReminderCheck-60000){a.notified=true;notify("Rappel : "+a.title);if("Notification"in window&&Notification.permission==="granted")new Notification("NOVA — Rappel",{body:a.title})}});lastReminderCheck=now;save(K.agenda,agenda);updateAgendaSummary()}
+$("exportAll").onclick=()=>downloadJSON("nova-export.json",{version:2,memories,agenda});
+$("checkServer").onclick=checkServer;
+async function checkServer(){try{const r=await fetch("/api/health",{cache:"no-store"}),d=await r.json();$("serverStatus").textContent=r.ok?`En ligne · ${d.version} · Gemini ${d.gemini_configured?"configuré":"non configuré"}`:"Serveur indisponible"}catch{$("serverStatus").textContent="Impossible de joindre /api/health"}}
+setTheme(read(K.theme,"default"));$("appearance").value=read(K.appearance,"dark");document.body.classList.toggle("light",$("appearance").value==="light");$("voiceToggle").textContent=`Voix : ${voiceOn?"activée":"désactivée"}`;
+renderMemories();renderAgenda();restoreChat();loadWeather();loadMarket();checkServer();setInterval(checkReminders,15000);
+})();
+</script>
 </body>
 </html>
