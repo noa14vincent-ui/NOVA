@@ -1,150 +1,1747 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#030712">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NOVA">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
-<title>NOVA</title>
-<style>
-:root{--bg:#030712;--blue:#38bdf8;--cyan:#67e8f9;--violet:#a78bfa;--white:#e8f5ff;--muted:#91a7ba;--panel:#07111f;--line:#17324b;--accent1:#1e3aff;--accent2:#00d4ff;--accent3:#7c3aed;--accent-rgb:56,189,248}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%;background:var(--bg);color:#f4f8ff;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-body{overflow-x:hidden}button,input,select,textarea{font:inherit;color-scheme:dark}button{touch-action:manipulation}
-.shell{width:min(760px,100%);min-height:100vh;margin:auto;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);position:relative}
-.grid{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 18%,rgba(var(--accent-rgb),.12),transparent 30%),linear-gradient(rgba(var(--accent-rgb),.035) 1px,transparent 1px),linear-gradient(90deg,rgba(var(--accent-rgb),.035) 1px,transparent 1px);background-size:auto,34px 34px,34px 34px}
-.topbar{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line);position:relative;z-index:2}
-.brand{display:flex;align-items:center;gap:10px}.brand-mark{width:30px;height:30px;display:grid;place-items:center}.brand-mark svg{width:100%;height:100%;filter:drop-shadow(0 0 5px var(--accent2))}.brand-name{letter-spacing:.24em;font-size:16px;font-weight:750}
-.status{font-size:12px;letter-spacing:.12em;color:#b9c9d8;text-transform:uppercase}.top-actions{display:flex;gap:7px;align-items:center}
-.top-action{min-height:44px;border:1px solid var(--line);border-radius:11px;padding:9px 12px;color:var(--white);font-size:12px;font-weight:750;letter-spacing:.04em;background:linear-gradient(135deg,var(--accent1),var(--accent2),var(--accent3));cursor:pointer}
-.core{padding:22px 0 10px;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2}.core-ring{width:150px;height:150px;display:grid;place-items:center}.core-logo{width:82%;height:82%;filter:drop-shadow(0 0 4px var(--accent2)) drop-shadow(0 0 10px var(--accent1))}.state{margin-top:4px;font-size:12px;letter-spacing:.16em;color:#b9c9d8;text-transform:uppercase}.state.active{color:var(--cyan)}
-.panel{border:1px solid var(--line);border-radius:18px;position:relative;z-index:2;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,var(--accent1) 16%,#07111f),#050c19 55%,color-mix(in srgb,var(--accent3) 18%,#07111f));box-shadow:0 18px 45px #0005,inset 0 1px 0 #ffffff09}
-.chat-panel{height:min(43vh,440px);min-height:250px;overflow:auto;padding:14px;margin-top:10px}.empty{height:100%;display:grid;place-items:center;color:#b9c9d8;font-size:14px;line-height:1.65;text-align:center}
-.row{display:flex;margin:10px 0}.row.user{justify-content:flex-end}.bubble{max-width:90%;padding:10px 12px;border:1px solid var(--line);border-radius:14px;font-size:15px;line-height:1.6;background:linear-gradient(135deg,color-mix(in srgb,var(--accent1) 22%,#07111f),color-mix(in srgb,var(--accent3) 14%,#080f1f));word-break:break-word}.user .bubble{background:linear-gradient(135deg,var(--accent1),var(--accent2),var(--accent3))}
-.meta{font-size:10px;color:#a9bdce;margin-bottom:4px;letter-spacing:.1em;text-transform:uppercase}
-.composer{position:relative;margin-top:12px;padding-bottom:8px;z-index:3}.composer-inner{display:grid;grid-template-columns:52px minmax(0,1fr) 56px;gap:9px;padding:9px;border-radius:18px;background:rgba(3,7,18,.95);backdrop-filter:blur(18px)}
-.icon-btn,.send-btn,.toggle,.quick,.big-action,.modal button{position:relative;overflow:hidden;border:1px solid var(--line);color:var(--white);cursor:pointer;background:linear-gradient(135deg,color-mix(in srgb,var(--accent1) 55%,#07111f),color-mix(in srgb,var(--accent2) 42%,#07111f) 52%,color-mix(in srgb,var(--accent3) 55%,#07111f));box-shadow:inset 0 1px 0 #ffffff14,0 7px 20px #0003;transition:transform .15s ease,border-color .15s ease}
-.icon-btn,.send-btn{height:52px;border-radius:14px;display:grid;place-items:center}.icon-btn{width:52px}.send-btn{width:56px;background:linear-gradient(135deg,var(--accent1),var(--accent2),var(--accent3))}
-.icon-btn:active,.send-btn:active,.toggle:active,.quick:active,.big-action:active{transform:scale(.97)}
-.icon-btn.active{color:var(--cyan);border-color:var(--accent2)}.composer input{width:100%;border:0;outline:0;background:transparent;color:#f4f8ff;font-size:16px;padding:0 5px;min-width:0}.composer input::placeholder{color:#91a7ba}
-.mic-icon,.send-icon{fill:none;stroke:currentColor;stroke-width:1.8;width:21px;height:21px}.controls{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}.toggle{min-height:44px;padding:0 16px;border-radius:13px;font-size:12px;font-weight:750;letter-spacing:.06em}.toggle.on{color:#8ff3ff;border-color:var(--accent2)}
-/* Cartes et raccourcis restent dans la disposition originale, avec de grandes zones tactiles */
-.dash{display:grid;grid-template-columns:1fr;gap:12px;position:relative;z-index:2}.dash-card{padding:17px}.dash-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.dash-title{font-size:13px;font-weight:800;letter-spacing:.14em;color:#d5e8f7}.refresh{color:#8ff3ff;font-size:13px;font-weight:750;cursor:pointer;padding:9px 12px;min-height:42px;border-radius:10px;background:#0b2034;border:1px solid var(--line)}
-.value{font-size:34px;margin-top:10px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums}.sub{font-size:14px;color:#b2c4d3;margin-top:6px;min-height:21px;line-height:1.5}
-.city-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:13px}.city-search input,.modal input,.modal select,.modal textarea{width:100%;min-width:0;min-height:48px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(2,8,20,.8);color:var(--white);outline:none}.city-search input:focus,.modal input:focus,.modal textarea:focus,.modal select:focus{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.15)}
-.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.quick{min-height:50px;border-radius:13px;font-size:13px;font-weight:800;letter-spacing:.05em}.quick.primary{background:linear-gradient(135deg,var(--accent1),var(--accent2),var(--accent3))}
-.agenda-shortcut{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.big-action{min-height:64px;border-radius:15px;padding:12px;text-align:left;font-weight:800;font-size:13px;letter-spacing:.04em;display:flex;flex-direction:column;justify-content:center;gap:3px}.big-action small{font-size:12px;font-weight:500;letter-spacing:0;color:#d2e8f7}.agenda-card{border-color:color-mix(in srgb,var(--accent2) 48%,var(--line))}
-.footer{padding:16px 0 22px;text-align:center;color:#8ea4b7;font-size:11px}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,15px);padding:12px 15px;max-width:calc(100vw - 28px);border:1px solid rgba(103,232,249,.4);border-radius:13px;background:rgba(7,17,31,.98);color:#f4f8ff;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:100;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
-.thinking{display:flex;align-items:center;gap:10px;padding:10px 12px;color:#c8d8e8;font-size:13px}.thinking-mark{width:19px;height:19px;border:2px solid var(--accent2);border-left-color:transparent;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-.bubble table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px;display:block;overflow-x:auto}.bubble th,.bubble td{padding:7px 9px;text-align:left;border:1px solid var(--line);min-width:75px}.bubble th{background:linear-gradient(135deg,var(--accent1),var(--accent3))}
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,3,12,.82);backdrop-filter:blur(14px);z-index:50;display:none;align-items:center;justify-content:center;padding:12px}.modal-backdrop.open{display:flex}.modal{width:min(620px,100%);max-height:90dvh;overflow:auto;background:linear-gradient(145deg,#091426,#050a15 68%,color-mix(in srgb,var(--accent3) 20%,#050a15));border:1px solid color-mix(in srgb,var(--accent2) 48%,var(--line));border-radius:20px;padding:17px;box-shadow:0 20px 90px #000b}.modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.modal h2{font-size:17px;letter-spacing:.06em;margin:0}.modal p,.hint{font-size:13px;color:#a8bbce;line-height:1.55}.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.theme-choice{padding:13px 10px;border-radius:12px;color:white;text-align:left;font-weight:750}.theme-choice small{display:block;opacity:.9;margin-top:3px;font-size:11px}.field{display:grid;gap:6px;margin:11px 0}.field label{font-size:13px;color:#b7c9d8}.action-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.modal .action-row button,.memory-item button,.agenda-item button{min-height:44px;border-radius:11px;padding:10px 13px;font-weight:750}.memory-list,.agenda-list{display:grid;gap:9px;margin-top:12px}.memory-scene{padding:10px;border:1px solid var(--line);border-radius:16px}.memory-item,.agenda-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;border:1px solid var(--line);background:rgba(var(--accent-rgb),.08)}.memory-item .item-text,.agenda-item .item-text{min-width:0;overflow-wrap:anywhere;font-size:14px}.memory-item button,.agenda-item button{flex-shrink:0;padding:7px 9px;font-size:11px}
-.calendar{border:1px solid var(--line);border-radius:15px;padding:11px;background:#040b17}.calendar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.calendar-head strong{font-size:15px;text-align:center;flex:1}.calendar-head button{min-width:44px;min-height:44px;border-radius:11px}.calendar-views{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}.calendar-views button{min-height:44px;border-radius:11px}.calendar-views button.selected{border-color:var(--accent2);color:var(--cyan)}.weekdays,.calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.weekdays span{text-align:center;font-size:11px;color:#9fb7ca;padding:5px 0}.day{min-width:0;aspect-ratio:1;border-radius:9px;padding:0;font-size:13px;background:#0a1728!important;border:1px solid #1a3045!important;position:relative}.day.outside{opacity:.3}.day.today{outline:1px solid var(--accent2)}.day.selected{background:linear-gradient(135deg,var(--accent1),var(--accent2))!important;color:white;border-color:var(--accent2)!important}.day.has-event:after{content:"";position:absolute;bottom:4px;left:50%;width:5px;height:5px;border-radius:50%;background:var(--cyan);transform:translateX(-50%)}.day.selected.has-event:after{background:white}.selected-day-title{font-size:15px;font-weight:800;margin:13px 0 4px}.year-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.month-tile{min-height:70px;border-radius:12px;text-align:center;padding:8px 4px;font-size:12px}.month-tile strong{display:block;font-size:13px}.month-tile span{display:block;color:#c2d7e8;margin-top:3px;font-size:11px}
-.theme-choice[data-theme="nebula"]{background:linear-gradient(120deg,#142d9c,#1e3aff,#00d4ff)}.theme-choice[data-theme="mars"]{background:linear-gradient(120deg,#510710,#b10d25,#ff454f)}.theme-choice[data-theme="aurora"]{background:linear-gradient(120deg,#013c2d,#008c65,#00ff99)}.theme-choice[data-theme="neon"]{background:linear-gradient(120deg,#260447,#6d19c4,#d45cff)}.theme-choice[data-theme="eclipse"]{background:linear-gradient(120deg,#08090b,#343943,#9da5b1)}.theme-choice[data-theme="solaire"]{background:linear-gradient(120deg,#553000,#b88600,#ffd700)}
-@media(max-width:520px){.shell{padding-left:10px;padding-right:10px}.topbar{gap:7px}.top-actions{width:100%;display:grid;grid-template-columns:1fr 1fr 48px;gap:7px}.top-action{min-height:48px;padding:9px 6px;font-size:12px}.status{font-size:10px}.core{padding-top:12px}.core-ring{width:104px;height:104px}.chat-panel{height:39vh;min-height:230px}.dash{grid-template-columns:1fr}.dash-card{padding:15px}.city-search{grid-template-columns:1fr}.quick{min-height:54px;font-size:13px}.big-action{min-height:72px}.modal{padding:13px}.modal-grid{grid-template-columns:1fr 1fr}.day{font-size:12px}.calendar{padding:8px}.calendar-days,.weekdays{gap:3px}.year-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101319">
+  <meta name="description" content="NOVA, votre assistant personnel intelligent.">
+  <title>NOVA — Assistant personnel</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101319;
+      --surface: #171b23;
+      --surface-2: #1d222c;
+      --surface-3: #252b37;
+      --text: #f0f2f7;
+      --muted: #9ca5b5;
+      --border: #303744;
+      --accent: #8da8ff;
+      --accent-strong: #587ce5;
+      --accent-text: #ffffff;
+      --danger: #ff8585;
+      --success: #78d7ac;
+      --radius: 18px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .24);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background:
+        radial-gradient(ellipse at 50% -20%, rgba(99, 121, 180, .09), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .app {
+      width: min(100%, 920px);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 0 18px calc(22px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: calc(14px + env(safe-area-inset-top)) 0 14px;
+      background: rgba(16, 19, 25, .94);
+      border-bottom: 1px solid rgba(255, 255, 255, .07);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid #4d5d7c;
+      border-radius: 14px;
+      background: #222b3c;
+      color: #dce5ff;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .brand-name { font-size: 18px; font-weight: 800; letter-spacing: 2px; }
+    .brand-subtitle { color: var(--muted); font-size: 11px; }
+
+    .top-actions { display: flex; gap: 7px; align-items: center; }
+
+    .button {
+      min-height: 42px;
+      padding: 10px 14px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: background .16s, border-color .16s, transform .16s;
+    }
+
+    .button:hover { background: var(--surface-3); border-color: #515c70; }
+    .button:active { transform: scale(.98); }
+    .button.primary {
+      background: var(--accent-strong);
+      border-color: var(--accent-strong);
+      color: var(--accent-text);
+      font-weight: 700;
+    }
+    .button.primary:hover { background: #6989e9; }
+    .button.ghost { background: transparent; }
+    .button.danger { color: var(--danger); }
+    .button.small { min-height: 34px; padding: 7px 10px; font-size: 13px; }
+    .button.square { width: 43px; min-width: 43px; padding: 0; }
+    .button.active { border-color: var(--accent); background: #26334b; }
+
+    .main { flex: 1; display: flex; flex-direction: column; }
+
+    .welcome {
+      padding: 38px 0 24px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 9px 0 8px;
+      font-size: clamp(30px, 7vw, 43px);
+      line-height: 1.12;
+      letter-spacing: -1.5px;
+    }
+
+    .welcome p {
+      max-width: 480px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 24px;
+    }
+
+    .quick-card {
+      min-height: 90px;
+      padding: 15px 12px;
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .quick-card:hover { border-color: #586887; background: var(--surface-2); }
+    .quick-title { display: block; margin-bottom: 5px; font-weight: 700; font-size: 13px; }
+    .quick-description { display: block; color: var(--muted); font-size: 11px; }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 12px;
+    }
+
+    .section-heading h2 { margin: 0; font-size: 15px; font-weight: 750; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 12px; }
+
+    .chat {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding-bottom: 18px;
+    }
+
+    .message {
+      max-width: 88%;
+      padding: 13px 15px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: var(--surface);
+      border-top-left-radius: 5px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: #263653;
+      border-color: #3a5077;
+      border-top-right-radius: 5px;
+    }
+
+    .message-label {
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .message p { margin: 0; }
+    .message p + p { margin-top: 8px; }
+
+    .typing { color: var(--muted); font-size: 13px; padding: 8px 0; }
+
+    .composer-wrap {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      padding: 12px 0 calc(8px + env(safe-area-inset-bottom));
+      margin-top: auto;
+      background: linear-gradient(to bottom, transparent, var(--bg) 18%);
+    }
+
+    .composer {
+      padding: 9px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      border: 1px solid #424b5b;
+      border-radius: 18px;
+      background: #191e27;
+      box-shadow: var(--shadow);
+    }
+
+    .composer textarea {
+      flex: 1;
+      min-width: 0;
+      min-height: 42px;
+      max-height: 150px;
+      resize: none;
+      padding: 10px 5px;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .composer textarea:focus-visible { outline: none; }
+    .composer textarea::placeholder { color: #8993a4; }
+
+    .composer-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-line {
+      min-height: 20px;
+      padding: 7px 3px 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 8px 0 24px;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 17px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .panel.full { grid-column: 1 / -1; }
+    .panel h2 { margin: 0; font-size: 15px; }
+    .panel p { color: var(--muted); font-size: 13px; }
+    .weather-temp { margin: 16px 0 2px; font-size: 36px; font-weight: 750; }
+    .weather-city { font-size: 13px; color: var(--muted); }
+    .inline-form { display: flex; gap: 7px; margin-top: 12px; }
+    .inline-form input { min-width: 0; flex: 1; }
+
+    input, textarea, select {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: #11151c;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+    }
+
+    input::placeholder, textarea::placeholder { color: #818b9b; }
+    label { display: block; margin: 12px 0 6px; color: #c7ceda; font-size: 12px; }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .row > * { min-width: 0; }
+    .spread { justify-content: space-between; }
+
+    .item-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #141820;
+    }
+
+    .list-item-content { flex: 1; min-width: 0; }
+    .list-item-title { font-weight: 650; overflow-wrap: anywhere; }
+    .list-item-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .list-item-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+    .empty {
+      padding: 19px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      border: 1px dashed #353d4b;
+      border-radius: 12px;
+    }
+
+    .calendar-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .calendar-toolbar strong { font-size: 14px; text-align: center; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+    .calendar-weekday { padding: 7px 0; text-align: center; color: var(--muted); font-size: 10px; }
+    .calendar-day {
+      position: relative;
+      min-width: 0;
+      aspect-ratio: 1 / 1;
+      padding: 0;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: var(--text);
+      background: #1d222c;
+      cursor: pointer;
+    }
+
+    .calendar-day:hover { border-color: #65718a; }
+    .calendar-day.outside { color: #626c7b; background: transparent; }
+    .calendar-day.today { border-color: var(--accent); }
+    .calendar-day.selected { background: var(--accent-strong); color: white; }
+    .calendar-day.has-event::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 4px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      transform: translateX(-50%);
+    }
+
+    .calendar-day.selected.has-event::after { background: white; }
+    .day-detail { margin-top: 17px; padding-top: 15px; border-top: 1px solid var(--border); }
+    .divider { height: 1px; margin: 15px 0; background: var(--border); }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 14px;
+      background: rgba(0, 0, 0, .66);
+      backdrop-filter: blur(7px);
+    }
+
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(100%, 560px);
+      max-height: min(86dvh, 850px);
+      overflow-y: auto;
+      padding: 21px;
+      border: 1px solid #414958;
+      border-radius: 22px;
+      background: #171b23;
+      box-shadow: var(--shadow);
+      animation: appear .16s ease-out;
+    }
+
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 17px;
+    }
+
+    .modal-header h2 { margin: 0; font-size: 19px; }
+    .modal-description { margin: -8px 0 15px; color: var(--muted); font-size: 13px; }
+    .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+
+    .theme-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .theme-option.active { border-color: var(--accent); }
+    .swatch { width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+    .setting-row:last-child { border-bottom: 0; }
+    .setting-row p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .setting-row input[type="checkbox"] { width: 19px; min-height: 19px; accent-color: var(--accent-strong); }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(25px + env(safe-area-inset-bottom));
+      z-index: 60;
+      width: max-content;
+      max-width: calc(100vw - 32px);
+      padding: 12px 16px;
+      border: 1px solid #47536a;
+      border-radius: 12px;
+      background: #252d3b;
+      color: white;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 10px);
+      transition: opacity .18s, transform .18s;
+    }
+
+    .toast.visible { opacity: 1; transform: translate(-50%, 0); }
+    .footer { padding: 10px 0; text-align: center; color: #737d8d; font-size: 10px; }
+
+    body.light {
+      color-scheme: light;
+      --bg: #f3f5f9;
+      --surface: #ffffff;
+      --surface-2: #f5f7fb;
+      --surface-3: #e8edf6;
+      --text: #202634;
+      --muted: #677184;
+      --border: #d9deea;
+      --accent: #3e61bd;
+      --accent-strong: #3e61bd;
+      --accent-text: #ffffff;
+      --shadow: 0 15px 40px rgba(24, 36, 65, .10);
+      background: var(--bg);
+    }
+
+    body.light .topbar { background: rgba(243, 245, 249, .94); }
+    body.light .brand-mark { background: #e6ebf8; color: #2b467f; border-color: #ccd6ef; }
+    body.light .composer, body.light input, body.light textarea, body.light select { background: #fff; }
+    body.light .message.user { background: #e4ebfc; border-color: #cad7f5; }
+    body.light .list-item, body.light .calendar-day { background: #f5f7fb; }
+    body.light .modal-card { background: #fff; }
+    body.light .theme-option { background: #f5f7fb; }
+
+    body.theme-mars {
+      --accent: #e5a07c;
+      --accent-strong: #a75e42;
+    }
+    body.theme-aurora {
+      --accent: #8bd7bf;
+      --accent-strong: #397d70;
+    }
+    body.theme-neon {
+      --accent: #d0a6ff;
+      --accent-strong: #7950b5;
+    }
+    body.theme-eclipse {
+      --accent: #c3c8d2;
+      --accent-strong: #5a6476;
+    }
+    body.theme-solar {
+      --accent: #e7c17d;
+      --accent-strong: #977333;
+    }
+
+    @media (min-width: 650px) {
+      .app { padding-left: 26px; padding-right: 26px; }
+      .welcome { padding-top: 54px; }
+      .modal { align-items: center; }
+      .dashboard { gap: 15px; }
+      .panel { padding: 20px; }
+    }
+
+    @media (max-width: 480px) {
+      .app { padding-left: 13px; padding-right: 13px; }
+      .topbar { gap: 7px; }
+      .brand { gap: 8px; }
+      .brand-mark { width: 37px; height: 37px; }
+      .brand-name { font-size: 16px; }
+      .brand-subtitle { font-size: 10px; }
+      .top-actions { gap: 5px; }
+      .top-actions .button { min-height: 38px; padding: 8px 9px; font-size: 12px; }
+      .quick-actions { gap: 7px; }
+      .quick-card { min-height: 85px; padding: 11px 9px; }
+      .quick-title { font-size: 12px; }
+      .quick-description { font-size: 10px; }
+      .dashboard { grid-template-columns: 1fr; }
+      .panel.full { grid-column: auto; }
+      .message { max-width: 94%; }
+      .composer { gap: 5px; padding: 7px; }
+      .composer-tools { gap: 4px; }
+      .button.square { width: 39px; min-width: 39px; min-height: 39px; }
+      .calendar-grid { gap: 3px; }
+      .calendar-day { border-radius: 7px; font-size: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="grid"></div><div class="shell">
-<header class="topbar">
- <div class="brand"><div class="brand-mark"><svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="novaSmallGradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="var(--accent1)"/><stop offset="52%" stop-color="var(--accent2)"/><stop offset="100%" stop-color="var(--accent3)"/></linearGradient></defs><path d="M9 31V9C9 6 12 5 14 8L28 30C30 33 32 31 32 28V9" fill="none" stroke="url(#novaSmallGradient)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="brand-name">NOVA</div></div>
- <div class="top-actions"><button class="top-action" id="agendaOpenBtn">📅 AGENDA</button><button class="top-action" id="memoryOpenBtn">MÉMOIRE</button><button class="top-action" id="settingsOpenBtn" aria-label="Paramètres">⚙</button></div>
- <div class="status" id="statusText">SYSTÈME EN LIGNE</div>
-</header>
-<section class="core"><div class="core-ring" id="coreRing"><svg class="core-logo" viewBox="0 0 100 100" aria-label="NOVA"><defs><linearGradient id="novaCoreGradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="var(--accent1)"/><stop offset="52%" stop-color="var(--accent2)"/><stop offset="100%" stop-color="var(--accent3)"/></linearGradient></defs><path d="M22 78V22C22 16 27 14 32 20L69 78C74 84 79 82 79 75V22" fill="none" stroke="url(#novaCoreGradient)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="state" id="stateText">VEILLE</div></section>
-<section class="panel chat-panel" id="chatPanel"><div class="empty" id="emptyState">NOVA attend une commande.<br>Parle ou écris pour commencer une conversation.</div><div id="messages"></div></section>
-<section class="composer"><div class="composer-inner panel"><button class="icon-btn" id="micBtn" title="Parler à NOVA" aria-label="Parler à NOVA"><svg class="mic-icon" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="12" rx="4"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"></path></svg></button><input id="input" type="text" autocomplete="off" placeholder="Écrire à NOVA…"><button class="send-btn" id="sendBtn" title="Envoyer" aria-label="Envoyer"><svg class="send-icon" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"></path></svg></button></div><div class="controls"><button class="toggle on" id="voiceBtn">VOIX : ON</button></div></section>
-<section class="dash">
- <div class="panel dash-card agenda-card">
-  <div class="dash-head"><div class="dash-title">📅 AGENDA & RAPPELS</div><button class="refresh" id="agendaQuickBtn">OUVRIR L’AGENDA</button></div>
-  <div class="sub" id="agendaSummary">Aucun rendez-vous à venir.</div>
-  <div class="agenda-shortcut"><button class="big-action" id="quickAddEvent">＋ AJOUTER UN ÉVÉNEMENT<small>Créer un rendez-vous</small></button><button class="big-action" id="quickCalendarBtn">▦ CALENDRIER<small>Vue mois et année</small></button></div>
- </div>
- <div class="panel dash-card">
-  <div class="dash-head"><div class="dash-title">MÉTÉO</div><button class="refresh" id="weatherRefresh">↻ ACTUALISER</button></div>
-  <div class="value" id="weatherTemp">—</div><div class="sub" id="weatherLine">Grenoble · récupération…</div>
-  <form class="city-search" id="cityForm"><input id="cityInput" type="search" placeholder="Choisir une ville…" aria-label="Ville pour la météo" value="Grenoble"><button class="quick primary" type="submit">RECHERCHER</button></form>
-  <div class="quick-grid" id="cityShortcuts"><button class="quick" data-weather="Grenoble">📍 GRENOBLE</button><button class="quick" data-weather="Paris">🗼 PARIS</button></div>
- </div>
-</section>
-<div class="footer">NOVA · interface personnelle · données d’agenda conservées sur cet appareil</div></div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">N</div>
+        <div>
+          <div class="brand-name">NOVA</div>
+          <div class="brand-subtitle">Assistant personnel</div>
+        </div>
+      </div>
+      <nav class="top-actions" aria-label="Navigation principale">
+        <button class="button" id="agendaOpen" type="button">Agenda</button>
+        <button class="button" id="memoryOpen" type="button">Mémoire</button>
+        <button class="button square" id="settingsOpen" type="button" aria-label="Paramètres" title="Paramètres">Réglages</button>
+      </nav>
+    </header>
 
-<div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-label="Paramètres NOVA"><div class="modal"><div class="modal-head"><h2>PARAMÈTRES NOVA</h2><button class="top-action" data-close="settingsModal">FERMER ✕</button></div><p>Choisis une identité visuelle complète. Le fond, le logo et les boutons utilisent la même palette.</p><div class="modal-grid"><button class="theme-choice" data-theme="nebula">NEBULEUSE<small>Bleu électrique · #1E3AFF</small></button><button class="theme-choice" data-theme="mars">MARS<small>Rouge profond · #FF2D2D</small></button><button class="theme-choice" data-theme="aurora">AURORE<small>Vert émeraude · #00FF99</small></button><button class="theme-choice" data-theme="neon">NÉON<small>Violet · #A020F0</small></button><button class="theme-choice" data-theme="eclipse">ÉCLIPSE<small>Noir carbone · argent</small></button><button class="theme-choice" data-theme="solaire">SOLAIRE<small>Or ambré · #FFD700</small></button></div><div class="field"><label>Mode vocal</label><select id="voiceMode"><option value="ai">Voix IA naturelle</option><option value="browser">Voix instantanée du téléphone</option><option value="off">Silencieux</option></select></div><div class="field"><label>Animations</label><select id="motionMode"><option value="full">Futuristes</option><option value="reduced">Réduites</option></select></div></div></div>
+    <main class="main">
+      <section class="welcome" id="welcome">
+        <div class="eyebrow">Votre assistant intelligent</div>
+        <h1>Bonjour, que puis-je faire&nbsp;?</h1>
+        <p>Posez une question, organisez votre journée ou demandez de l’aide pour un projet.</p>
+      </section>
 
-<div class="modal-backdrop" id="memoryModal" role="dialog" aria-modal="true" aria-label="Mémoire NOVA"><div class="modal"><div class="modal-head"><h2>MÉMOIRE LONG TERME</h2><button class="top-action" data-close="memoryModal">FERMER ✕</button></div><div id="memoryGate"><p>La mémoire est conservée localement sur cet appareil. Configure un code à 6 chiffres pour protéger l’accès.</p><div class="field"><label id="pinLabel">Créer un code PIN à 6 chiffres</label><input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••"></div><div class="action-row"><button id="pinSubmit">CONTINUER</button></div><p class="hint">Le verrouillage protège l’interface, mais ne remplace pas le chiffrement sécurisé du système.</p></div><div id="memoryVault" hidden><div class="memory-scene"><div id="memoryList" class="memory-list"></div></div><div class="field"><label>Élément à retenir (projet, préférence, métier…)</label><input id="memoryInput" maxlength="500" placeholder="Ex. Mon projet s'appelle NOVA"></div><div class="action-row"><button id="memoryAddBtn">AJOUTER À LA MÉMOIRE</button><button id="memoryLockBtn">VERROUILLER</button><button id="memoryClearBtn">TOUT EFFACER</button></div><p class="hint">La mémoire est stockée localement. Les éléments sélectionnés peuvent être transmis au serveur avec tes demandes pour personnaliser les réponses.</p></div></div></div>
+      <section class="quick-actions" aria-label="Actions rapides">
+        <button class="quick-card" id="quickPlan" type="button">
+          <span class="quick-title">Organiser ma journée</span>
+          <span class="quick-description">Agenda et rappels</span>
+        </button>
+        <button class="quick-card" id="quickWeather" type="button">
+          <span class="quick-title">Consulter la météo</span>
+          <span class="quick-description">Conditions locales</span>
+        </button>
+        <button class="quick-card" id="quickIdeas" type="button">
+          <span class="quick-title">Trouver des idées</span>
+          <span class="quick-description">Créativité et projets</span>
+        </button>
+      </section>
 
-<div class="modal-backdrop" id="agendaModal" role="dialog" aria-modal="true" aria-label="Agenda NOVA"><div class="modal">
- <div class="modal-head"><h2>AGENDA DYNAMIQUE</h2><button class="top-action" data-close="agendaModal">FERMER ✕</button></div>
- <div class="calendar"><div class="calendar-head"><button id="calendarPrev" aria-label="Période précédente">‹</button><strong id="calendarHeading">Mois année</strong><button id="calendarNext" aria-label="Période suivante">›</button></div><div class="calendar-views"><button id="monthViewBtn" class="selected">VUE MENSUELLE</button><button id="yearViewBtn">VUE ANNUELLE</button></div><div id="calendarBody"></div></div>
- <div class="selected-day-title" id="selectedDayTitle">Événements du jour</div><div id="selectedDayEvents" class="agenda-list"></div>
- <div class="field"><label for="eventTitle">Événement</label><input id="eventTitle" maxlength="120" placeholder="Ex. Gym"></div>
- <div class="modal-grid"><div class="field"><label for="eventDate">Date</label><input id="eventDate" type="date"></div><div class="field"><label for="eventTime">Heure</label><input id="eventTime" type="time"></div></div>
- <div class="field"><label for="eventNotes">Notes (facultatif)</label><input id="eventNotes" maxlength="300" placeholder="Lieu, affaires à prendre…"></div>
- <div class="field"><label><input id="reminderConsent" type="checkbox" style="width:20px;min-height:20px;vertical-align:middle"> Activer un rappel 1 h 30 avant (quand NOVA est ouverte)</label></div>
- <div class="action-row"><button id="eventAddBtn">＋ AJOUTER À L’AGENDA</button><button id="jumpTodayBtn">AUJOURD’HUI</button></div>
- <p class="hint">Les rendez-vous restent sur cet iPhone dans le stockage du site. Les rappels locaux sont vérifiés lorsque NOVA est ouverte : iOS peut suspendre le site en arrière-plan, donc une alerte à l’heure exacte n’est pas garantie si l’app est fermée. Une permission de notification sera demandée uniquement si tu actives les rappels.</p>
- </div></div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <section aria-label="Conversation">
+        <div class="section-heading">
+          <h2>Conversation</h2>
+          <button class="button ghost small" id="clearChat" type="button">Effacer</button>
+        </div>
+        <div class="chat" id="chat" aria-live="polite">
+          <article class="message assistant">
+            <div class="message-label">NOVA</div>
+            <p>Bonjour. Je suis NOVA, ton assistant personnel. Comment puis-je t'aider aujourd'hui ?</p>
+          </article>
+        </div>
+        <div id="typing" class="typing" hidden>NOVA prépare une réponse…</div>
+      </section>
 
-<script>
-const state={voice:true,listening:false};
-const IS_PC=!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-const $=id=>document.getElementById(id);
-const input=$('input'),messages=$('messages'),emptyState=$('emptyState'),chatPanel=$('chatPanel'),micBtn=$('micBtn'),sendBtn=$('sendBtn'),voiceBtn=$('voiceBtn'),stateText=$('stateText'),statusText=$('statusText'),toast=$('toast');
-function toastMsg(text){toast.textContent=text;toast.classList.add('show');clearTimeout(window._toast);window._toast=setTimeout(()=>toast.classList.remove('show'),2400)}
-function setState(label,active=false){stateText.textContent=label;stateText.classList.toggle('active',active)}
-function renderReply(target,text){const lines=String(text||'').split(/\r?\n/);let i=0;while(i<lines.length){const line=lines[i];if(line.trim().startsWith('|')&&i+1<lines.length&&/^\s*\|?\s*:?-{3,}/.test(lines[i+1])){const tableLines=[line];i+=2;while(i<lines.length&&lines[i].trim().startsWith('|'))tableLines.push(lines[i++]);const table=document.createElement('table');tableLines.forEach((ln,idx)=>{const cells=ln.split('|').slice(1,-1);if(!cells.length)return;const tr=document.createElement('tr');cells.forEach(c=>{const cell=document.createElement(idx===0?'th':'td');cell.textContent=c.trim().replace(/\*\*/g,'');tr.appendChild(cell)});table.appendChild(tr)});target.appendChild(table);continue}if(!line.trim()){i++;continue}const p=document.createElement('p');p.style.margin='5px 0';p.textContent=line.replace(/^#{1,4}\s+/,'').replace(/^[-*]\s+/,'• ').replace(/\*\*(.*?)\*\*/g,'$1');target.appendChild(p);i++}}
-function addMessage(role,text){emptyState.style.display='none';const row=document.createElement('div');row.className='row '+role;const bubble=document.createElement('div');bubble.className='bubble';const meta=document.createElement('div');meta.className='meta';meta.textContent=role==='user'?'VOUS':'NOVA';const body=document.createElement('div');renderReply(body,text);bubble.append(meta,body);row.appendChild(bubble);messages.appendChild(row);chatPanel.scrollTop=chatPanel.scrollHeight}
-let currentAudio=null,currentAudioUrl=null;
-function getBestFrenchVoice(){if(!('speechSynthesis'in window))return null;const fr=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith('fr'));return fr[0]||null}
-function browserSpeak(text){if(!state.voice||!('speechSynthesis'in window)||!text)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text),v=getBestFrenchVoice();u.lang='fr-FR';if(v)u.voice=v;u.rate=.92;u.pitch=1.02;speechSynthesis.speak(u)}catch(e){}}
-async function speak(text){if(!state.voice||!text)return;const mode=(readJSON('novaSettings',{}).voiceMode||'ai');if(mode==='off')return;if(mode==='browser'){browserSpeak(text);return}try{if('speechSynthesis'in window)speechSynthesis.cancel();currentAudio?.pause();if(currentAudioUrl)URL.revokeObjectURL(currentAudioUrl)}catch(e){}try{setState('NOVA PARLE',true);statusText.textContent='VOIX IA…';const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});if(!r.ok)throw Error('TTS '+r.status);const blob=await r.blob();currentAudioUrl=URL.createObjectURL(blob);currentAudio=new Audio(currentAudioUrl);currentAudio.onended=()=>{if(currentAudioUrl)URL.revokeObjectURL(currentAudioUrl);currentAudioUrl=null;currentAudio=null;setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE'};currentAudio.onerror=()=>{browserSpeak(text);setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE'};await currentAudio.play()}catch(e){console.warn(e);browserSpeak(text);setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE'}}
-if('speechSynthesis'in window)speechSynthesis.addEventListener('voiceschanged',()=>speechSynthesis.getVoices());
-let thinkingRow=null;function showThinking(){thinkingRow?.remove();thinkingRow=document.createElement('div');thinkingRow.className='row nova';const t=document.createElement('div');t.className='thinking';const mark=document.createElement('span');mark.className='thinking-mark';const label=document.createElement('span');label.textContent='NOVA réfléchit…';t.append(mark,label);thinkingRow.append(t);emptyState.style.display='none';messages.appendChild(thinkingRow);chatPanel.scrollTop=chatPanel.scrollHeight}function hideThinking(){thinkingRow?.remove();thinkingRow=null}
-async function sendText(raw){const text=(raw||'').trim();if(!text)return;input.value='';addMessage('user',text);setState('NOVA RÉFLÉCHIT',true);statusText.textContent='NOVA ANALYSE…';showThinking();try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,device:IS_PC?'pc':'iphone',fast:false,memory_context:buildPersonalContext()})});const d=await r.json();hideThinking();if(!r.ok)throw Error(d.detail?JSON.stringify(d.detail):'Erreur');const reply=d.reply||d.text||"Je n'ai pas de réponse.";addMessage('nova',reply);speak(reply);try{handleAction(d.action)}catch(err){console.warn('Action impossible',err)}setState('VEILLE');statusText.textContent='SYSTÈME EN LIGNE'}catch(e){hideThinking();console.error(e);addMessage('nova','Je rencontre un problème de connexion.');toastMsg('Connexion serveur indisponible');setState('ERREUR');statusText.textContent='CONNEXION'}}
-function goToApp(a){if(a.ios_url){location.href=a.ios_url;setTimeout(()=>{if(!document.hidden)location.href=a.url},1200)}else location.href=a.url}
-function addOpenButton(a){const row=document.createElement('div');row.className='row nova';const link=document.createElement('a');link.className='toggle on';link.href=a.ios_url||a.url;link.textContent='OUVRIR '+String(a.label||'').toUpperCase();link.style.cssText='text-decoration:none;padding:0 16px';link.addEventListener('click',()=>{if(a.ios_url)setTimeout(()=>{if(!document.hidden)location.href=a.url},1200)});row.appendChild(link);messages.appendChild(row);chatPanel.scrollTop=chatPanel.scrollHeight}
-function handleAction(a){if(!a)return;if(a.type==='open_url'&&!IS_PC&&a.url){addOpenButton(a);goToApp(a);return}if(a.type==='weather'&&a.data)showWeather(a.data);if(a.type==='market'&&a.data&&typeof showMarket==='function')showMarket(a.data)}
-input.addEventListener('keydown',e=>{if(e.key==='Enter')sendText(input.value)});sendBtn.addEventListener('click',()=>sendText(input.value));
-voiceBtn.addEventListener('click',()=>{state.voice=!state.voice;voiceBtn.textContent='VOIX : '+(state.voice?'ON':'OFF');voiceBtn.classList.toggle('on',state.voice);if(!state.voice&&'speechSynthesis'in window)speechSynthesis.cancel();toastMsg(state.voice?'Voix activée':'Voix désactivée')});
-const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;let recognition=null;if(Recognition){recognition=new Recognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.continuous=false;recognition.onstart=()=>{state.listening=true;micBtn.classList.add('active');setState('ÉCOUTE',true);statusText.textContent='MICRO ACTIF'};recognition.onend=()=>{state.listening=false;micBtn.classList.remove('active');if(stateText.textContent==='ÉCOUTE')setState('VEILLE');if(statusText.textContent==='MICRO ACTIF')statusText.textContent='SYSTÈME EN LIGNE'};recognition.onerror=e=>toastMsg('Micro : '+(e.error||'indisponible'));recognition.onresult=e=>{const text=e.results?.[0]?.[0]?.transcript||'';if(text)sendText(text)}}
-micBtn.addEventListener('click',()=>{if(!recognition){toastMsg('La dictée vocale du navigateur n’est pas disponible ici.');input.focus();return}try{if(state.listening)recognition.stop();else recognition.start()}catch(e){toastMsg('Micro déjà en cours')}});
-function showWeather(d){$('weatherTemp').textContent=(d.temperature??'—')+' °C';$('weatherLine').textContent=`${d.city||$('cityInput').value} · ${d.description||d.condition||''} · humidité ${d.humidity??'—'} %`}
-async function loadWeather(city='Grenoble'){try{const r=await fetch('/api/weather?city='+encodeURIComponent(city));const d=await r.json();if(!r.ok)throw Error();showWeather(d)}catch(e){$('weatherLine').textContent='Données météo indisponibles'}}
-$('weatherRefresh').addEventListener('click',()=>loadWeather($('cityInput').value.trim()||'Grenoble'));$('cityForm').addEventListener('submit',e=>{e.preventDefault();const city=$('cityInput').value.trim();if(city)loadWeather(city)});document.querySelectorAll('[data-weather]').forEach(b=>b.addEventListener('click',()=>{$('cityInput').value=b.dataset.weather;loadWeather(b.dataset.weather)}));
-const THEMES={nebula:{name:'Nebuleuse',bg:'#030712',a:'#1e3aff',b:'#00d4ff',c:'#7c3aed',rgb:'0,180,255'},mars:{name:'Mars',bg:'#100407',a:'#8b0000',b:'#ff2d2d',c:'#ff647c',rgb:'255,45,45'},aurora:{name:'Aurore',bg:'#02110d',a:'#004d3a',b:'#00ff99',c:'#00bfa6',rgb:'0,255,153'},neon:{name:'Neon',bg:'#0b0412',a:'#4b0082',b:'#a020f0',c:'#e879f9',rgb:'160,32,240'},eclipse:{name:'Eclipse',bg:'#08090b',a:'#202124',b:'#b8bec9',c:'#656b76',rgb:'184,190,201'},solaire:{name:'Solaire',bg:'#120b02',a:'#b88600',b:'#ffd700',c:'#ff9f1c',rgb:'255,215,0'}};
-function applyTheme(key){const t=THEMES[key]||THEMES.nebula,root=document.documentElement;root.style.setProperty('--bg',t.bg);root.style.setProperty('--accent1',t.a);root.style.setProperty('--accent2',t.b);root.style.setProperty('--accent3',t.c);root.style.setProperty('--accent-rgb',t.rgb);root.style.setProperty('--cyan',t.b);root.style.setProperty('--blue',t.a);root.style.setProperty('--violet',t.c);$('theme-color')?.setAttribute('content',t.bg);document.querySelector('meta[name="theme-color"]')?.setAttribute('content',t.bg);localStorage.setItem('novaTheme',key)}
-applyTheme(localStorage.getItem('novaTheme')||'nebula');document.querySelectorAll('[data-theme]').forEach(b=>b.addEventListener('click',()=>{applyTheme(b.dataset.theme);toastMsg('Thème '+THEMES[b.dataset.theme].name+' activé')}));
-const settingsModal=$('settingsModal'),memoryModal=$('memoryModal'),agendaModal=$('agendaModal');
-$('settingsOpenBtn').addEventListener('click',()=>settingsModal.classList.add('open'));$('memoryOpenBtn').addEventListener('click',()=>{memoryModal.classList.add('open');showMemoryGate()});$('agendaOpenBtn').addEventListener('click',()=>openAgenda(false));$('agendaQuickBtn').addEventListener('click',()=>openAgenda(false));$('quickCalendarBtn').addEventListener('click',()=>openAgenda(false));$('quickAddEvent').addEventListener('click',()=>openAgenda(true));
-document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).classList.remove('open')));[settingsModal,memoryModal,agendaModal].forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
-const settings=readJSON('novaSettings',{});$('voiceMode').value=settings.voiceMode||'ai';$('motionMode').value=settings.motionMode||'full';$('voiceMode').addEventListener('change',e=>{settings.voiceMode=e.target.value;state.voice=e.target.value!=='off';voiceBtn.textContent='VOIX : '+(state.voice?'ON':'OFF');voiceBtn.classList.toggle('on',state.voice);localStorage.setItem('novaSettings',JSON.stringify(settings))});$('motionMode').addEventListener('change',e=>{settings.motionMode=e.target.value;document.body.classList.toggle('reduced-motion',e.target.value==='reduced');localStorage.setItem('novaSettings',JSON.stringify(settings))});if(settings.motionMode==='reduced')document.body.classList.add('reduced-motion');const reducedStyle=document.createElement('style');reducedStyle.textContent='.reduced-motion *{animation:none!important;transition:none!important}';document.head.appendChild(reducedStyle);
-const PIN_KEY='novaPinHashV1',LOCK_KEY='novaPinLockV1',MEM_KEY='novaLongMemoryV1',AGENDA_KEY='novaAgendaV1';
-function readJSON(key,def){try{return JSON.parse(localStorage.getItem(key))??def}catch{return def}}let vaultUnlocked=false;function getMemory(){return readJSON(MEM_KEY,[])}function saveMemory(items){localStorage.setItem(MEM_KEY,JSON.stringify(items))}async function hashPin(pin){const data=new TextEncoder().encode('NOVA_LOCAL_V1:'+pin);const hash=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}function getLock(){return readJSON(LOCK_KEY,{fails:0,until:0,permanent:false})}
-function showMemoryGate(){$('memoryGate').hidden=vaultUnlocked;$('memoryVault').hidden=!vaultUnlocked;if(vaultUnlocked){renderMemory();return}$('pinLabel').textContent=localStorage.getItem(PIN_KEY)?'Code PIN à 6 chiffres':'Créer un code PIN à 6 chiffres';$('pinInput').value=''}
-$('pinSubmit').addEventListener('click',async()=>{const pin=$('pinInput').value.trim(),lock=getLock();if(lock.permanent){toastMsg('Accès verrouillé sur cet appareil.');return}if(Date.now()<lock.until){toastMsg('Verrouillé encore '+Math.ceil((lock.until-Date.now())/1000)+' s');return}if(!/^\d{6}$/.test(pin)){toastMsg('Entre exactement 6 chiffres.');return}const existing=localStorage.getItem(PIN_KEY);if(!existing){localStorage.setItem(PIN_KEY,await hashPin(pin));vaultUnlocked=true;saveMemory(getMemory());showMemoryGate();toastMsg('Code configuré');return}if(await hashPin(pin)===existing){localStorage.setItem(LOCK_KEY,JSON.stringify({fails:0,until:0,permanent:false}));vaultUnlocked=true;showMemoryGate();return}lock.fails=(lock.fails||0)+1;if(lock.fails>=12){lock.permanent=true;lock.until=0;toastMsg('Accès bloqué après trop d’essais.')}else{const tier=Math.floor((lock.fails-1)/3),durations=[5000,30000,120000];lock.until=Date.now()+(durations[tier]||300000);toastMsg('Code incorrect · accès temporairement verrouillé.')}localStorage.setItem(LOCK_KEY,JSON.stringify(lock));$('pinInput').value=''});$('pinInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('pinSubmit').click()});
-function renderMemory(){const list=$('memoryList');list.replaceChildren();const items=getMemory();if(!items.length){const p=document.createElement('p');p.className='hint';p.textContent='La mémoire est vide. Ajoute les projets et préférences que NOVA doit retenir.';list.appendChild(p)}items.forEach((item,index)=>{const row=document.createElement('div');row.className='memory-item';const span=document.createElement('div');span.className='item-text';span.textContent=item.text;const del=document.createElement('button');del.textContent='SUPPRIMER';del.addEventListener('click',()=>{const now=getMemory();now.splice(index,1);saveMemory(now);renderMemory()});row.append(span,del);list.appendChild(row)})}
-$('memoryAddBtn').addEventListener('click',()=>{const text=$('memoryInput').value.trim();if(!text)return;const items=getMemory();items.push({text,created:new Date().toISOString()});saveMemory(items);$('memoryInput').value='';renderMemory();toastMsg('Élément mémorisé sur cet appareil')});$('memoryLockBtn').addEventListener('click',()=>{vaultUnlocked=false;showMemoryGate()});$('memoryClearBtn').addEventListener('click',()=>{if(confirm('Effacer définitivement tous les éléments de la mémoire locale ?')){saveMemory([]);renderMemory();toastMsg('Mémoire effacée')}});
-function getAgenda(){return readJSON(AGENDA_KEY,[])}function saveAgenda(items){localStorage.setItem(AGENDA_KEY,JSON.stringify(items))}
-const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-let selectedDate=new Date();selectedDate.setHours(12,0,0,0);let calendarMode='month',calendarYear=selectedDate.getFullYear(),calendarMonth=selectedDate.getMonth();
-function dateKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function parseDate(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d,12)}
-function sameDate(a,b){return dateKey(a)===dateKey(b)}
-function eventsFor(date){return getAgenda().filter(e=>e.date===dateKey(date)).sort((a,b)=>a.time.localeCompare(b.time))}
-function openAgenda(addMode){agendaModal.classList.add('open');calendarYear=selectedDate.getFullYear();calendarMonth=selectedDate.getMonth();$('eventDate').value=dateKey(selectedDate);renderCalendar();renderAgendaSummary();if(addMode){$('eventTitle').focus();$('eventTitle').scrollIntoView({block:'center',behavior:'smooth'})}}
-function renderCalendar(){const heading=$('calendarHeading'),body=$('calendarBody');body.replaceChildren();$('monthViewBtn').classList.toggle('selected',calendarMode==='month');$('yearViewBtn').classList.toggle('selected',calendarMode==='year');if(calendarMode==='month'){heading.textContent=`${MONTHS[calendarMonth]} ${calendarYear}`;const week=document.createElement('div');week.className='weekdays';DAYS.forEach(d=>{const s=document.createElement('span');s.textContent=d;week.appendChild(s)});body.appendChild(week);const days=document.createElement('div');days.className='calendar-days';const first=new Date(calendarYear,calendarMonth,1,12);const offset=(first.getDay()+6)%7;const start=new Date(calendarYear,calendarMonth,1-offset,12);const today=new Date();for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const b=document.createElement('button');b.className='day';b.textContent=d.getDate();if(d.getMonth()!==calendarMonth)b.classList.add('outside');if(sameDate(d,today))b.classList.add('today');if(sameDate(d,selectedDate))b.classList.add('selected');if(eventsFor(d).length)b.classList.add('has-event');b.setAttribute('aria-label',`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}${eventsFor(d).length?' avec événement':''}`);b.addEventListener('click',()=>{selectedDate=new Date(d);calendarYear=d.getFullYear();calendarMonth=d.getMonth();$('eventDate').value=dateKey(d);renderCalendar();renderSelectedDay()});days.appendChild(b)}body.appendChild(days)}else{heading.textContent=String(calendarYear);const grid=document.createElement('div');grid.className='year-grid';MONTHS.forEach((month,index)=>{const b=document.createElement('button');b.className='month-tile';b.innerHTML=`<strong>${month}</strong>`;const count=getAgenda().filter(e=>e.date.startsWith(`${calendarYear}-${String(index+1).padStart(2,'0')}-`)).length;const span=document.createElement('span');span.textContent=count?`${count} événement${count>1?'s':''}`:'Aucun événement';b.appendChild(span);b.addEventListener('click',()=>{calendarMonth=index;calendarMode='month';selectedDate=new Date(calendarYear,index,1,12);$('eventDate').value=dateKey(selectedDate);renderCalendar();renderSelectedDay()});grid.appendChild(b)});body.appendChild(grid)}renderSelectedDay()}
-function renderSelectedDay(){const title=$('selectedDayTitle'),list=$('selectedDayEvents');title.textContent='Événements · '+selectedDate.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});list.replaceChildren();const items=eventsFor(selectedDate);if(!items.length){const p=document.createElement('p');p.className='hint';p.textContent='Rien de prévu ce jour-là. Tu peux ajouter un événement juste en dessous.';list.appendChild(p)}items.forEach(item=>{const row=document.createElement('div');row.className='agenda-item';const span=document.createElement('div');span.className='item-text';span.textContent=`${item.time} — ${item.title}${item.notes?' · '+item.notes:''}${item.reminder?' · rappel activé':''}`;const del=document.createElement('button');del.textContent='SUPPRIMER';del.addEventListener('click',()=>{saveAgenda(getAgenda().filter(e=>e.id!==item.id));renderCalendar();renderAgendaSummary()});row.append(span,del);list.appendChild(row)})}
-function renderAgendaSummary(){const now=new Date(),today=dateKey(now);const next=getAgenda().filter(e=>e.date>=today).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));$('agendaSummary').textContent=next.length?`${next.length} rendez-vous à venir · prochain : ${next[0].title}, le ${parseDate(next[0].date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})} à ${next[0].time}`:'Aucun rendez-vous à venir.'}
-$('calendarPrev').addEventListener('click',()=>{if(calendarMode==='year')calendarYear--;else{calendarMonth--;if(calendarMonth<0){calendarMonth=11;calendarYear--}}renderCalendar()});$('calendarNext').addEventListener('click',()=>{if(calendarMode==='year')calendarYear++;else{calendarMonth++;if(calendarMonth>11){calendarMonth=0;calendarYear++}}renderCalendar()});$('monthViewBtn').addEventListener('click',()=>{calendarMode='month';renderCalendar()});$('yearViewBtn').addEventListener('click',()=>{calendarMode='year';renderCalendar()});$('jumpTodayBtn').addEventListener('click',()=>{selectedDate=new Date();selectedDate.setHours(12,0,0,0);calendarYear=selectedDate.getFullYear();calendarMonth=selectedDate.getMonth();$('eventDate').value=dateKey(selectedDate);calendarMode='month';renderCalendar()});
-$('eventAddBtn').addEventListener('click',async()=>{const title=$('eventTitle').value.trim(),date=$('eventDate').value,time=$('eventTime').value,notes=$('eventNotes').value.trim(),wantsReminder=$('reminderConsent').checked;if(!title||!date||!time){toastMsg('Ajoute un titre, une date et une heure.');return}let reminder=false;if(wantsReminder){if(!('Notification'in window)){toastMsg('Notifications non prises en charge ici. Le rappel sera vérifié quand NOVA est ouverte.');reminder=true}else{let permission=Notification.permission;if(permission==='default'){try{permission=await Notification.requestPermission()}catch(e){permission='denied'}}reminder=permission==='granted';if(!reminder)toastMsg('Notifications refusées : le rappel ne pourra être affiché que dans NOVA ouverte.')}}const all=getAgenda();all.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),title,date,time,notes,reminder,reminded:false});saveAgenda(all);selectedDate=parseDate(date);calendarYear=selectedDate.getFullYear();calendarMonth=selectedDate.getMonth();calendarMode='month';$('eventTitle').value='';$('eventNotes').value='';$('reminderConsent').checked=false;renderCalendar();renderAgendaSummary();toastMsg('Événement ajouté à l’agenda');});
-function checkReminders(){const now=Date.now();let items=getAgenda(),changed=false;for(const e of items){if(!e.reminder||e.reminded)continue;const due=new Date(`${e.date}T${e.time}:00`).getTime()-90*60*1000;if(now>=due&&now<new Date(`${e.date}T${e.time}:00`).getTime()){const message=`Dans 1 h 30 ou moins : ${e.title} (${e.time})`;toastMsg('Rappel : '+e.title+' à '+e.time);if('Notification'in window&&Notification.permission==='granted'&&document.visibilityState==='visible'){try{new Notification('NOVA · rappel',{body:message,tag:'nova-'+e.id})}catch(err){}}e.reminded=true;changed=true}}if(changed)saveAgenda(items)}
-function buildPersonalContext(){const mem=getMemory().map(x=>x.text).slice(-40),now=new Date(),today=dateKey(now),events=getAgenda().filter(e=>e.date>=today).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).slice(0,20).map(e=>`${e.date} ${e.time}: ${e.title}${e.notes?' ('+e.notes+')':''}`),context=[];if(mem.length)context.push('MÉMOIRE PERSONNELLE (informations choisies par l’utilisateur):\n- '+mem.join('\n- '));if(events.length)context.push('AGENDA À VENIR:\n- '+events.join('\n- '));return context.join('\n\n').slice(0,5000)}
-loadWeather();renderAgendaSummary();setInterval(checkReminders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkReminders();renderAgendaSummary()}});if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-</script>
-</body></html>
+      <section class="composer-wrap" aria-label="Écrire un message">
+        <form class="composer" id="chatForm">
+          <textarea id="messageInput" rows="1" maxlength="12000"
+            placeholder="Écris ton message…" aria-label="Ton message"></textarea>
+          <div class="composer-tools">
+            <button class="button square" id="micButton" type="button" title="Dicter un message" aria-label="Dicter un message">Micro</button>
+            <button class="button square" id="voiceButton" type="button" title="Activer ou désactiver la lecture vocale" aria-label="Lecture vocale">Voix</button>
+            <button class="button primary square" id="sendButton" type="submit" aria-label="Envoyer le message" title="Envoyer">Env.</button>
+          </div>
+        </form>
+        <div class="status-line" id="statusLine">Prêt à discuter</div>
+      </section>
+
+      <section class="dashboard" aria-label="Outils personnels">
+        <article class="panel">
+          <div class="section-heading">
+            <h2>Météo</h2>
+            <button class="button small" id="refreshWeather" type="button">Actualiser</button>
+          </div>
+          <div class="weather-city" id="weatherCity">Choisis une ville</div>
+          <div class="weather-temp" id="weatherTemp">--°</div>
+          <div id="weatherDescription" class="muted tiny">Les données apparaîtront ici.</div>
+          <form class="inline-form" id="weatherForm">
+            <input id="cityInput" type="text" maxlength="100" placeholder="Nom de la ville" aria-label="Nom de la ville">
+            <button class="button primary" type="submit">Chercher</button>
+          </form>
+          <div class="row" style="margin-top:9px">
+            <button class="button small" type="button" data-city="Grenoble">Grenoble</button>
+            <button class="button small" type="button" data-city="Paris">Paris</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="section-heading">
+            <h2>À venir</h2>
+            <button class="button small" id="addReminderOpen" type="button">Ajouter</button>
+          </div>
+          <div class="muted tiny" id="reminderSummary">Tes prochains rappels s'afficheront ici.</div>
+          <div class="item-list" id="upcomingReminders"></div>
+        </article>
+
+        <article class="panel full">
+          <div class="section-heading">
+            <h2>Mon espace</h2>
+            <button class="button small" id="exportData" type="button">Exporter mes données</button>
+          </div>
+          <p>Retrouve tes rendez-vous et tes rappels. Les données personnelles de cet espace sont stockées dans ce navigateur.</p>
+          <div class="row">
+            <button class="button" id="dashboardAgenda" type="button">Ouvrir l'agenda</button>
+            <button class="button" id="dashboardMemory" type="button">Gérer la mémoire</button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">NOVA V1 · Assistant personnel</footer>
+  </div>
+
+  <!-- Agenda -->
+  <div class="modal" id="agendaModal" role="dialog" aria-modal="true" aria-labelledby="agendaTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="agendaTitle">Mon agenda</h2>
+        <button class="button square" data-close="agendaModal" aria-label="Fermer" type="button">X</button>
+      </div>
+
+      <div class="calendar-toolbar">
+        <button class="button square" id="prevMonth" aria-label="Mois précédent" type="button">‹</button>
+        <strong id="calendarMonth"></strong>
+        <button class="button square" id="nextMonth" aria-label="Mois suivant" type="button">›</button>
+      </div>
+
+      <div class="calendar-grid" id="calendarWeekdays">
+        <div class="calendar-weekday">Lun.</div>
+        <div class="calendar-weekday">Mar.</div>
+        <div class="calendar-weekday">Mer.</div>
+        <div class="calendar-weekday">Jeu.</div>
+        <div class="calendar-weekday">Ven.</div>
+        <div class="calendar-weekday">Sam.</div>
+        <div class="calendar-weekday">Dim.</div>
+      </div>
+      <div class="calendar-grid" id="calendarDays"></div>
+
+      <div class="day-detail">
+        <div class="section-heading">
+          <h2 id="selectedDateLabel">Événements</h2>
+          <button class="button primary small" id="addEventOpen" type="button">Ajouter un événement</button>
+        </div>
+        <div class="item-list" id="dayEvents"></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-heading"><h2>Prochains événements</h2></div>
+      <div class="item-list" id="allEvents"></div>
+    </div>
+  </div>
+
+  <!-- Ajouter un événement -->
+  <div class="modal" id="eventModal" role="dialog" aria-modal="true" aria-labelledby="eventTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="eventTitle">Nouvel événement</h2>
+        <button class="button square" data-close="eventModal" aria-label="Fermer" type="button">X</button>
+      </div>
+      <form id="eventForm">
+        <label for="eventName">Titre</label>
+        <input id="eventName" required maxlength="120" placeholder="Ex. Réunion de projet">
+        <label for="eventDate">Date</label>
+        <input id="eventDate" type="date" required>
+        <label for="eventTime">Heure</label>
+        <input id="eventTime" type="time" value="09:00" required>
+        <label for="eventNotes">Notes (facultatif)</label>
+        <textarea id="eventNotes" rows="3" maxlength="1000" placeholder="Détails de l'événement"></textarea>
+        <div class="row" style="margin-top:17px">
+          <button class="button primary" type="submit">Enregistrer</button>
+          <button class="button" data-close="eventModal" type="button">Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Rappels -->
+  <div class="modal" id="reminderModal" role="dialog" aria-modal="true" aria-labelledby="reminderTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="reminderTitle">Nouveau rappel</h2>
+        <button class="button square" data-close="reminderModal" aria-label="Fermer" type="button">X</button>
+      </div>
+      <form id="reminderForm">
+        <label for="reminderName">Rappel</label>
+        <input id="reminderName" required maxlength="160" placeholder="Ex. Préparer mon dossier">
+        <label for="reminderDate">Date</label>
+        <input id="reminderDate" type="date" required>
+        <label for="reminderTime">Heure</label>
+        <input id="reminderTime" type="time" value="18:00" required>
+        <div class="muted tiny" style="margin-top:9px">Les rappels sont conservés dans ce navigateur. Les notifications dépendent des autorisations et du fonctionnement de l'application.</div>
+        <div class="row" style="margin-top:17px">
+          <button class="button primary" type="submit">Enregistrer</button>
+          <button class="button" data-close="reminderModal" type="button">Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mémoire -->
+  <div class="modal" id="memoryModal" role="dialog" aria-modal="true" aria-labelledby="memoryTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="memoryTitle">Mémoire personnelle</h2>
+        <button class="button square" data-close="memoryModal" aria-label="Fermer" type="button">X</button>
+      </div>
+      <p class="modal-description">Ajoute les informations que tu souhaites retrouver plus tard. Elles restent dans le stockage local de ce navigateur.</p>
+
+      <div id="memoryLock">
+        <label for="memoryPin">Code PIN local (4 à 12 chiffres)</label>
+        <input id="memoryPin" type="password" inputmode="numeric" maxlength="12" placeholder="Code PIN">
+        <div class="row" style="margin-top:10px">
+          <button class="button primary" id="unlockMemory" type="button">Déverrouiller</button>
+          <button class="button" id="setupMemoryPin" type="button">Créer un code</button>
+        </div>
+        <p class="muted tiny">Attention : ce verrouillage est une protection d'interface, pas un chiffrement sécurisé. Ne stocke pas de mots de passe ni de données sensibles.</p>
+      </div>
+
+      <div id="memoryContent" hidden>
+        <form id="memoryForm">
+          <label for="memoryText">Nouvelle note</label>
+          <textarea id="memoryText" rows="3" maxlength="3000" required placeholder="Ce que tu veux retenir…"></textarea>
+          <button class="button primary" type="submit" style="margin-top:9px">Ajouter à la mémoire</button>
+        </form>
+        <div class="divider"></div>
+        <div class="section-heading"><h2>Mes notes</h2><button class="button small" id="lockMemory" type="button">Verrouiller</button></div>
+        <div class="item-list" id="memoryList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Réglages -->
+  <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="settingsTitle">Réglages</h2>
+        <button class="button square" data-close="settingsModal" aria-label="Fermer" type="button">X</button>
+      </div>
+
+      <div class="section-heading"><h2>Apparence</h2></div>
+      <div class="theme-grid" id="themeGrid">
+        <button class="theme-option" data-theme="default" type="button"><span class="swatch" style="background:#587ce5"></span><span>Bleu sobre</span></button>
+        <button class="theme-option" data-theme="mars" type="button"><span class="swatch" style="background:#a75e42"></span><span>Terre</span></button>
+        <button class="theme-option" data-theme="aurora" type="button"><span class="swatch" style="background:#397d70"></span><span>Forêt</span></button>
+        <button class="theme-option" data-theme="neon" type="button"><span class="swatch" style="background:#7950b5"></span><span>Violet</span></button>
+        <button class="theme-option" data-theme="eclipse" type="button"><span class="swatch" style="background:#5a6476"></span><span>Graphite</span></button>
+        <button class="theme-option" data-theme="solar" type="button"><span class="swatch" style="background:#977333"></span><span>Sable</span></button>
+      </div>
+
+      <div class="setting-row">
+        <div><strong>Mode clair</strong><p>Utiliser un fond clair.</p></div>
+        <input type="checkbox" id="lightMode" aria-label="Activer le mode clair">
+      </div>
+      <div class="setting-row">
+        <div><strong>Lecture vocale</strong><p>Lire les réponses à voix haute.</p></div>
+        <input type="checkbox" id="voiceSetting" aria-label="Activer la lecture vocale">
+      </div>
+      <div class="setting-row">
+        <div><strong>Notifications de rappels</strong><p>Demander l'autorisation du navigateur.</p></div>
+        <button class="button small" id="notificationPermission" type="button">Activer</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-heading"><h2>Données locales</h2></div>
+      <p class="muted tiny">L'agenda, les rappels, la mémoire et les préférences sont stockés dans le navigateur. Effacer les données du site peut les supprimer.</p>
+      <button class="button danger" id="resetLocalData" type="button">Réinitialiser les données locales</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+      const STORAGE = {
+        agenda: "novaAgendaV1",
+        memory: "novaLongMemoryV1",
+        theme: "novaTheme",
+        settings: "novaSettings",
+        reminders: "novaRemindersV1",
+        memoryPin: "novaMemoryPinV1",
+        chat: "novaChatV1"
+      };
+
+      const DEFAULT_SETTINGS = {
+        voice: false,
+        light: false,
+        city: "Grenoble"
+      };
+
+      function readJSON(key, fallback) {
+        try {
+          const value = localStorage.getItem(key);
+          return value === null ? fallback : JSON.parse(value);
+        } catch {
+          return fallback;
+        }
+      }
+
+      function saveJSON(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch {
+          showToast("Impossible d'enregistrer : stockage indisponible.");
+        }
+      }
+
+      let settings = { ...DEFAULT_SETTINGS, ...readJSON(STORAGE.settings, {}) };
+      let events = readJSON(STORAGE.agenda, []);
+      let reminders = readJSON(STORAGE.reminders, []);
+      let memories = readJSON(STORAGE.memory, []);
+      let selectedDate = dateKey(new Date());
+      let visibleMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      let memoryUnlocked = false;
+      let recognition = null;
+      let requestInProgress = false;
+      let toastTimer = null;
+
+      if (!Array.isArray(events)) events = [];
+      if (!Array.isArray(reminders)) reminders = [];
+      if (!Array.isArray(memories)) memories = [];
+
+      function dateKey(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function formatDate(value, options = {}) {
+        if (!value) return "";
+        const date = new Date(`${value}T12:00:00`);
+        if (Number.isNaN(date.getTime())) return value;
+        return new Intl.DateTimeFormat("fr-FR", options).format(date);
+      }
+
+      function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, char => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;",
+          '"': "&quot;", "'": "&#39;"
+        })[char]);
+      }
+
+      function showToast(message) {
+        const toast = $("#toast");
+        toast.textContent = message;
+        toast.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("visible"), 3000);
+      }
+
+      function openModal(id) {
+        const modal = document.getElementById(id);
+        if (!modal) return;
+        modal.classList.add("open");
+        const focusable = modal.querySelector("input, textarea, button");
+        if (focusable) setTimeout(() => focusable.focus(), 60);
+      }
+
+      function closeModal(id) {
+        document.getElementById(id)?.classList.remove("open");
+      }
+
+      $$("[data-close]").forEach(button => {
+        button.addEventListener("click", () => closeModal(button.dataset.close));
+      });
+
+      $$(".modal").forEach(modal => {
+        modal.addEventListener("click", event => {
+          if (event.target === modal) modal.classList.remove("open");
+        });
+      });
+
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+          $$(".modal.open").forEach(modal => modal.classList.remove("open"));
+        }
+      });
+
+      // Apparence et réglages
+      function applyTheme(theme) {
+        const allowed = ["default", "mars", "aurora", "neon", "eclipse", "solar"];
+        const value = allowed.includes(theme) ? theme : "default";
+        document.body.classList.remove("theme-mars", "theme-aurora", "theme-neon", "theme-eclipse", "theme-solar");
+        if (value !== "default") document.body.classList.add(`theme-${value}`);
+        localStorage.setItem(STORAGE.theme, value);
+
+        $$(".theme-option").forEach(button => {
+          button.classList.toggle("active", button.dataset.theme === value);
+        });
+      }
+
+      function applySettings() {
+        document.body.classList.toggle("light", Boolean(settings.light));
+        $("#lightMode").checked = Boolean(settings.light);
+        $("#voiceSetting").checked = Boolean(settings.voice);
+        saveJSON(STORAGE.settings, settings);
+      }
+
+      applyTheme(localStorage.getItem(STORAGE.theme) || "default");
+      applySettings();
+
+      $$(".theme-option").forEach(button => {
+        button.addEventListener("click", () => applyTheme(button.dataset.theme));
+      });
+
+      $("#lightMode").addEventListener("change", event => {
+        settings.light = event.target.checked;
+        applySettings();
+      });
+
+      $("#voiceSetting").addEventListener("change", event => {
+        settings.voice = event.target.checked;
+        applySettings();
+      });
+
+      $("#settingsOpen").addEventListener("click", () => openModal("settingsModal"));
+
+      $("#notificationPermission").addEventListener("click", async () => {
+        if (!("Notification" in window)) {
+          showToast("Les notifications ne sont pas disponibles dans ce navigateur.");
+          return;
+        }
+        try {
+          const permission = await Notification.requestPermission();
+          showToast(permission === "granted"
+            ? "Notifications autorisées."
+            : "Notifications non autorisées.");
+        } catch {
+          showToast("Impossible d'activer les notifications.");
+        }
+      });
+
+      $("#resetLocalData").addEventListener("click", () => {
+        const ok = confirm("Effacer l'agenda, les rappels, la mémoire, la conversation et les préférences de NOVA sur ce navigateur ?");
+        if (!ok) return;
+
+        Object.values(STORAGE).forEach(key => localStorage.removeItem(key));
+        events = [];
+        reminders = [];
+        memories = [];
+        settings = { ...DEFAULT_SETTINGS };
+        memoryUnlocked = false;
+        applyTheme("default");
+        applySettings();
+        renderCalendar();
+        renderReminders();
+        renderMemory();
+        renderChat();
+        closeModal("settingsModal");
+        showToast("Données locales réinitialisées.");
+      });
+
+      // Conversation
+      let chatMessages = readJSON(STORAGE.chat, []);
+      if (!Array.isArray(chatMessages)) chatMessages = [];
+      chatMessages = chatMessages.filter(item =>
+        item && ["assistant", "user"].includes(item.role) && typeof item.text === "string"
+      ).slice(-80);
+
+      function renderChat() {
+        const chat = $("#chat");
+        chat.replaceChildren();
+
+        if (chatMessages.length === 0) {
+          const welcome = document.createElement("article");
+          welcome.className = "message assistant";
+          welcome.innerHTML = '<div class="message-label">NOVA</div><p>Bonjour. Comment puis-je t’aider aujourd’hui ?</p>';
+          chat.appendChild(welcome);
+        } else {
+          chatMessages.forEach(message => appendMessage(message.role, message.text, false));
+        }
+      }
+
+      function appendMessage(role, text, persist = true) {
+        const article = document.createElement("article");
+        article.className = `message ${role}`;
+
+        const label = document.createElement("div");
+        label.className = "message-label";
+        label.textContent = role === "assistant" ? "NOVA" : "Vous";
+
+        const content = document.createElement("p");
+        content.textContent = text;
+
+        article.append(label, content);
+        $("#chat").appendChild(article);
+
+        if (persist) {
+          chatMessages.push({ role, text, time: Date.now() });
+          chatMessages = chatMessages.slice(-80);
+          saveJSON(STORAGE.chat, chatMessages);
+        }
+
+        article.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      function setStatus(message) {
+        $("#statusLine").textContent = message;
+      }
+
+      function setLoading(loading) {
+        requestInProgress = loading;
+        $("#sendButton").disabled = loading;
+        $("#typing").hidden = !loading;
+        setStatus(loading ? "NOVA réfléchit…" : "Prêt à discuter");
+      }
+
+      function readAloud(text) {
+        if (!settings.voice || !("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "fr-FR";
+        utterance.rate = 1;
+        window.speechSynthesis.speak(utterance);
+      }
+
+      async function sendMessage(text) {
+        const message = text.trim();
+        if (!message || requestInProgress) return;
+
+        appendMessage("user", message);
+        $("#messageInput").value = "";
+        resizeTextarea();
+        setLoading(true);
+
+        try {
+          const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message })
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.detail || data.error || `Erreur serveur (${response.status})`);
+          }
+
+          const answer =
+            (typeof data.response === "string" && data.response) ||
+            (typeof data.reply === "string" && data.reply) ||
+            (typeof data.message === "string" && data.message) ||
+            (typeof data.text === "string" && data.text) ||
+            "";
+
+          if (!answer) {
+            throw new Error("Le serveur n'a pas renvoyé de réponse lisible.");
+          }
+
+          appendMessage("assistant", answer);
+          readAloud(answer);
+        } catch (error) {
+          const errorMessage = error instanceof TypeError
+            ? "Impossible de joindre NOVA. Vérifie ta connexion et que le serveur est en ligne."
+            : `Je n'ai pas pu répondre. ${error.message}`;
+
+          appendMessage("assistant", errorMessage);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      $("#chatForm").addEventListener("submit", event => {
+        event.preventDefault();
+        sendMessage($("#messageInput").value);
+      });
+
+      function resizeTextarea() {
+        const input = $("#messageInput");
+        input.style.height = "auto";
+        input.style.height = `${Math.min(input.scrollHeight, 150)}px`;
+      }
+
+      $("#messageInput").addEventListener("input", resizeTextarea);
+      $("#messageInput").addEventListener("keydown", event => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          $("#chatForm").requestSubmit();
+        }
+      });
+
+      $("#clearChat").addEventListener("click", () => {
+        if (!confirm("Effacer la conversation enregistrée sur cet appareil ?")) return;
+        chatMessages = [];
+        saveJSON(STORAGE.chat, chatMessages);
+        renderChat();
+        showToast("Conversation effacée.");
+      });
+
+      $("#voiceButton").addEventListener("click", async () => {
+        if (!("speechSynthesis" in window)) {
+          showToast("La lecture vocale n'est pas prise en charge.");
+          return;
+        }
+        settings.voice = !settings.voice;
+        applySettings();
+
+        if (!settings.voice) {
+          window.speechSynthesis.cancel();
+          showToast("Lecture vocale désactivée.");
+        } else {
+          const latest = [...chatMessages].reverse().find(item => item.role === "assistant");
+          if (latest) readAloud(latest.text);
+          showToast("Lecture vocale activée.");
+        }
+      });
+
+      $("#micButton").addEventListener("click", () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          showToast("La dictée vocale n'est pas prise en charge ici. Essaie un navigateur compatible.");
+          return;
+        }
+
+        if (recognition) {
+          recognition.stop();
+          recognition = null;
+          return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.lang = "fr-FR";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => setStatus("Écoute en cours…");
+        recognition.onresult = event => {
+          $("#messageInput").value = event.results[0][0].transcript;
+          resizeTextarea();
+          $("#messageInput").focus();
+          setStatus("Dictée terminée");
+        };
+        recognition.onerror = () => {
+          setStatus("Dictée indisponible");
+          showToast("La dictée n'a pas pu démarrer. Vérifie l'autorisation du microphone.");
+        };
+        recognition.onend = () => {
+          recognition = null;
+          if (!requestInProgress) setStatus("Prêt à discuter");
+        };
+
+        try {
+          recognition.start();
+        } catch {
+          recognition = null;
+          showToast("Impossible de démarrer le microphone.");
+        }
+      });
+
+      $("#quickPlan").addEventListener("click", () => openModal("agendaModal"));
+      $("#dashboardAgenda").addEventListener("click", () => openModal("agendaModal"));
+      $("#agendaOpen").addEventListener("click", () => openModal("agendaModal"));
+
+      $("#quickIdeas").addEventListener("click", () => {
+        $("#messageInput").value = "Aide-moi à trouver des idées pour un nouveau projet.";
+        resizeTextarea();
+        $("#messageInput").focus();
+      });
+
+      $("#quickWeather").addEventListener("click", () => {
+        $("#cityInput").focus();
+        $("#cityInput").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
+      // Agenda
+      function saveEvents() {
+        saveJSON(STORAGE.agenda, events);
+        renderCalendar();
+        renderReminders();
+      }
+
+      function renderCalendar() {
+        $("#calendarMonth").textContent = new Intl.DateTimeFormat("fr-FR", {
+          month: "long", year: "numeric"
+        }).format(visibleMonth);
+
+        const days = $("#calendarDays");
+        days.replaceChildren();
+
+        const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+        const offset = (firstDay.getDay() + 6) % 7;
+        const start = new Date(firstDay);
+        start.setDate(start.getDate() - offset);
+
+        const todayKey = dateKey(new Date());
+
+        for (let i = 0; i < 42; i++) {
+          const date = new Date(start);
+          date.setDate(start.getDate() + i);
+          const key = dateKey(date);
+          const dayEvents = events.filter(item => item.date === key);
+
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "calendar-day";
+          button.textContent = String(date.getDate());
+          button.setAttribute("aria-label", formatDate(key, {
+            weekday: "long", day: "numeric", month: "long", year: "numeric"
+          }));
+
+          if (date.getMonth() !== visibleMonth.getMonth()) button.classList.add("outside");
+          if (key === todayKey) button.classList.add("today");
+          if (key === selectedDate) button.classList.add("selected");
+          if (dayEvents.length) button.classList.add("has-event");
+
+          button.addEventListener("click", () => {
+            selectedDate = key;
+            visibleMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+            renderCalendar();
+          });
+
+          days.appendChild(button);
+        }
+
+        $("#selectedDateLabel").textContent = formatDate(selectedDate, {
+          weekday: "long", day: "numeric", month: "long"
+        });
+
+        const selectedEvents = events
+          .filter(item => item.date === selectedDate)
+          .sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+
+        renderItemList($("#dayEvents"), selectedEvents, {
+          empty: "Aucun événement pour cette date.",
+          type: "event"
+        });
+
+        const upcoming = events
+          .filter(item => item.date >= todayKey)
+          .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+          .slice(0, 8);
+
+        renderItemList($("#allEvents"), upcoming, {
+          empty: "Aucun événement à venir.",
+          type: "event"
+        });
+      }
+
+      $("#prevMonth").addEventListener("click", () => {
+        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
+        renderCalendar();
+      });
+
+      $("#nextMonth").addEventListener("click", () => {
+        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
+        renderCalendar();
+      });
+
+      function openNewEvent() {
+        $("#eventForm").reset();
+        $("#eventDate").value = selectedDate || dateKey(new Date());
+        $("#eventTime").value = "09:00";
+        openModal("eventModal");
+      }
+
+      $("#addEventOpen").addEventListener("click", openNewEvent);
+
+      $("#eventForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const name = $("#eventName").value.trim();
+        const date = $("#eventDate").value;
+        const time = $("#eventTime").value;
+
+        if (!name || !date || !time) return;
+
+        events.push({
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          title: name,
+          date,
+          time,
+          notes: $("#eventNotes").value.trim()
+        });
+
+        selectedDate = date;
+        visibleMonth = new Date(`${date}T12:00:00`);
+        saveEvents();
+        closeModal("eventModal");
+        showToast("Événement enregistré.");
+      });
+
+      // Rappels
+      function saveReminders() {
+        saveJSON(STORAGE.reminders, reminders);
+        renderReminders();
+      }
+
+      function renderReminders() {
+        const today = dateKey(new Date());
+        const upcoming = reminders
+          .filter(item => !item.done)
+          .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+        $("#reminderSummary").textContent = upcoming.length
+          ? `${upcoming.length} rappel${upcoming.length > 1 ? "s" : ""} à suivre`
+          : "Tu n'as aucun rappel en attente.";
+
+        renderItemList($("#upcomingReminders"), upcoming.slice(0, 5), {
+          empty: "Aucun rappel pour le moment.",
+          type: "reminder"
+        });
+      }
+
+      function openNewReminder() {
+        $("#reminderForm").reset();
+        $("#reminderDate").value = dateKey(new Date());
+        $("#reminderTime").value = "18:00";
+        openModal("reminderModal");
+      }
+
+      $("#addReminderOpen").addEventListener("click", openNewReminder);
+
+      $("#reminderForm").addEventListener("submit", event => {
+        event.preventDefault();
+
+        const title = $("#reminderName").value.trim();
+        const date = $("#reminderDate").value;
+        const time = $("#reminderTime").value;
+        if (!title || !date || !time) return;
+
+        reminders.push({
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          title, date, time, done: false
+        });
+
+        saveReminders();
+        closeModal("reminderModal");
+        showToast("Rappel enregistré.");
+      });
+
+      function renderItemList(container, items, options) {
+        container.replaceChildren();
+
+        if (!items.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = options.empty;
+          container.appendChild(empty);
+          return;
+        }
+
+        items.forEach(item => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "list-item";
+
+          const content = document.createElement("div");
+          content.className = "list-item-content";
+
+          const title = document.createElement("div");
+          title.className = "list-item-title";
+          title.textContent = item.title || "Sans titre";
+
+          const meta = document.createElement("div");
+          meta.className = "list-item-meta";
+          meta.textContent = [
+            formatDate(item.date, { day: "numeric", month: "short", year: "numeric" }),
+            item.time || ""
+          ].filter(Boolean).join(" · ");
+
+          content.append(title, meta);
+
+          if (item.notes) {
+            const notes = document.createElement("div");
+            notes.className = "list-item-meta";
+            notes.textContent = item.notes;
+            content.appendChild(notes);
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "list-item-actions";
+
+          if (options.type === "event") {
+            const remove = document.createElement("button");
+            remove.className = "button small danger";
+            remove.type = "button";
+            remove.textContent = "Supprimer";
+            remove.addEventListener("click", () => {
+              if (!confirm("Supprimer cet événement ?")) return;
+              events = events.filter(entry => entry.id !== item.id);
+              saveEvents();
+              showToast("Événement supprimé.");
+            });
+            actions.appendChild(remove);
+          }
+
+          if (options.type === "reminder") {
+            const done = document.createElement("button");
+            done.className = "button small";
+            done.type = "button";
+            done.textContent = "Terminé";
+            done.addEventListener("click", () => {
+              reminders = reminders.filter(entry => entry.id !== item.id);
+              saveReminders();
+              showToast("Rappel terminé.");
+            });
+
+            const remove = document.createElement("button");
+            remove.className = "button small danger";
+            remove.type = "button";
+            remove.textContent = "Supprimer";
+            remove.addEventListener("click", () => {
+              reminders = reminders.filter(entry => entry.id !== item.id);
+              saveReminders();
+              showToast("Rappel supprimé.");
+            });
+
+            actions.append(done, remove);
+          }
+
+          wrapper.append(content, actions);
+          container.appendChild(wrapper);
+        });
+      }
+
+      // Mémoire locale
+      function openMemory() {
+        $("#memoryPin").value = "";
+        $("#memoryLock").hidden = false;
+        $("#memoryContent").hidden = true;
+        memoryUnlocked = false;
+        openModal("memoryModal");
+      }
+
+      $("#memoryOpen").addEventListener("click", openMemory);
+      $("#dashboardMemory").addEventListener("click", openMemory);
+
+      function getMemoryPin() {
+        return localStorage.getItem(STORAGE.memoryPin);
+      }
+
+      $("#setupMemoryPin").addEventListener("click", () => {
+        const pin = $("#memoryPin").value.trim();
+
+        if (!/^\d{4,12}$/.test(pin)) {
+          showToast("Choisis un code composé de 4 à 12 chiffres.");
+          return;
+        }
+
+        if (getMemoryPin()) {
+          showToast("Un code existe déjà. Déverrouille la mémoire d'abord.");
+          return;
+        }
+
+        localStorage.setItem(STORAGE.memoryPin, pin);
+        memoryUnlocked = true;
+        showMemoryContent();
+        showToast("Code local créé.");
+      });
+
+      $("#unlockMemory").addEventListener("click", () => {
+        const stored = getMemoryPin();
+        const entered = $("#memoryPin").value.trim();
+
+        if (!stored) {
+          showToast("Crée d'abord un code pour verrouiller la mémoire.");
+          return;
+        }
+
+        if (entered !== stored) {
+          showToast("Code incorrect.");
+          return;
+        }
+
+        memoryUnlocked = true;
+        showMemoryContent();
+      });
+
+      function showMemoryContent() {
+        $("#memoryLock").hidden = true;
+        $("#memoryContent").hidden = false;
+        renderMemory();
+      }
+
+      $("#lockMemory").addEventListener("click", () => {
+        memoryUnlocked = false;
+        $("#memoryLock").hidden = false;
+        $("#memoryContent").hidden = true;
+        $("#memoryPin").value = "";
+        showToast("Mémoire verrouillée.");
+      });
+
+      $("#memoryForm").addEventListener("submit", event => {
+        event.preventDefault();
+        if (!memoryUnlocked) return;
+
+        const text = $("#memoryText").value.trim();
+        if (!text) return;
+
+        memories.unshift({
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          text,
+          createdAt: new Date().toISOString()
+        });
+
+        saveJSON(STORAGE.memory, memories);
+        $("#memoryText").value = "";
+        renderMemory();
+        showToast("Note enregistrée.");
+      });
+
+      function renderMemory() {
+        const list = $("#memoryList");
+        list.replaceChildren();
+
+        if (!memoryUnlocked) return;
+
+        if (!memories.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Ta mémoire est vide.";
+          list.appendChild(empty);
+          return;
+        }
+
+        memories.forEach(memory => {
+          const item = document.createElement("div");
+          item.className = "list-item";
+
+          const content = document.createElement("div");
+          content.className = "list-item-content";
+
+          const text = document.createElement("div");
+          text.className = "list-item-title";
+          text.textContent = memory.text;
+
+          const meta = document.createElement("div");
+          meta.className = "list-item-meta";
+          meta.textContent = memory.createdAt
+            ? new Date(memory.createdAt).toLocaleDateString("fr-FR")
+            : "";
+
+          content.append(text, meta);
+
+          const remove = document.createElement("button");
+          remove.className = "button small danger";
+          remove.type = "button";
+          remove.textContent = "Supprimer";
+          remove.addEventListener("click", () => {
+            memories = memories.filter(entry => entry.id !== memory.id);
+            saveJSON(STORAGE.memory, memories);
+            renderMemory();
+            showToast("Note supprimée.");
+          });
+
+          item.append(content, remove);
+          list.appendChild(item);
+        });
+      }
+
+      // Météo : utilise le backend de NOVA.
+      async function fetchWeather(city) {
+        const query = city.trim();
+        if (!query) {
+          showToast("Saisis le nom d'une ville.");
+          return;
+        }
+
+        $("#weatherCity").textContent = `Recherche : ${query}`;
+        $("#weatherDescription").textContent = "Chargement…";
+
+        try {
+          const response = await fetch(`/api/weather?city=${encodeURIComponent(query)}`, {
+            headers: { "Accept": "application/json" }
+          });
+
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(data.detail || data.error || "Météo indisponible.");
+          }
+
+          const temperature = data.temperature ?? data.temp ?? data.temperature_c;
+          const description = data.description ?? data.condition ?? data.weather ?? "Conditions actuelles";
+          const returnedCity = data.city ?? data.name ?? query;
+
+          if (temperature === undefined || temperature === null) {
+            throw new Error("Le format de réponse météo ne contient pas de température.");
+          }
+
+          $("#weatherCity").textContent = returnedCity;
+          $("#weatherTemp").textContent = `${Math.round(Number(temperature))}°`;
+          $("#weatherDescription").textContent = String(description);
+          settings.city = query;
+          saveJSON(STORAGE.settings, settings);
+        } catch (error) {
+          $("#weatherCity").textContent = query;
+          $("#weatherTemp").textContent = "--°";
+          $("#weatherDescription").textContent = error.message;
+          showToast("Impossible de récupérer la météo.");
+        }
+      }
+
+      $("#weatherForm").addEventListener("submit", event => {
+        event.preventDefault();
+        fetchWeather($("#cityInput").value);
+      });
+
+      $("#refreshWeather").addEventListener("click", () => fetchWeather(settings.city || "Grenoble"));
+
+      $$("[data-city]").forEach(button => {
+        button.addEventListener("click", () => {
+          $("#cityInput").value = button.dataset.city;
+          fetchWeather(button.dataset.city);
+        });
+      });
+
+      // Export JSON des données locales
+      $("#exportData").addEventListener("click", () => {
+        const data = {
+          exportedAt: new Date().toISOString(),
+          events,
+          reminders,
+          memories,
+          settings,
+          chat: chatMessages
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json;charset=utf-8"
+        });
+
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `nova-export-${dateKey(new Date())}.json`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        showToast("Export préparé.");
+      });
+
+      // Initialisation
+      renderChat();
+      renderCalendar();
+      renderReminders();
+
+      $("#cityInput").value = settings.city || "Grenoble";
+
+      // Les notifications sont vérifiées lorsque l'application est ouverte.
+      // Les rappels ne peuvent pas garantir une alerte si le navigateur est fermé.
+      function checkDueReminders() {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+        const now = new Date();
+        const currentDate = dateKey(now);
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+        reminders.forEach(reminder => {
+          const key = `novaNotified_${reminder.id}`;
+          if (reminder.done || reminder.date !== currentDate || reminder.time > currentTime) return;
+          if (sessionStorage.getItem(key)) return;
+
+          try {
+            new Notification("NOVA — Rappel", {
+              body: reminder.title,
+              tag: reminder.id
+            });
+            sessionStorage.setItem(key, "1");
+          } catch {
+            // Les notifications peuvent être bloquées par le navigateur.
+          }
+        });
+      }
+
+      checkDueReminders();
+      setInterval(checkDueReminders, 30000);
+
+      // Enregistrement de l'agenda sous le format utilisé par NOVA V1.
+      saveJSON(STORAGE.agenda, events);
+      saveJSON(STORAGE.reminders, reminders);
+    })();
+  </script>
+</body>
+</html>
