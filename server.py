@@ -19,7 +19,7 @@ app = FastAPI(title="NOVA", version="5.1.0")
 BASE_DIR = Path(__file__).resolve().parent
 
 API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
 client = genai.Client(api_key=API_KEY) if API_KEY else None
 
 http = requests.Session()
