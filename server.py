@@ -15,35 +15,51 @@ from google import genai
 from google.genai import types
 
 
-# --------------------------------------------------
-# CONFIGURATION
-# --------------------------------------------------
+# ==================================================
+# NOVA — CONFIGURATION
+# ==================================================
+
+APP_VERSION = "5.4.0"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nova")
 
-APP_VERSION = "5.3.0"
 
-API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+def read_env(name: str, default: str = "") -> str:
+    """Lit une variable Render en supprimant les espaces inutiles."""
+    return os.getenv(name, default).strip()
 
-PRIMARY_MODEL = os.getenv(
+
+API_KEY = read_env("GEMINI_API_KEY")
+PRIMARY_MODEL = read_env(
     "GEMINI_MODEL", "gemini-3.5-flash-lite"
-).strip()
+)
+FALLBACK_MODEL = read_env("GEMINI_FALLBACK_MODEL")
+EXTRA_MODELS = read_env("GEMINI_EXTRA_MODELS")
 
-FALLBACK_MODEL = os.getenv(
-    "GEMINI_FALLBACK_MODEL", ""
-).strip()
+# Le client est créé uniquement si la clé est présente.
+client = None
 
-EXTRA_MODELS = os.getenv(
-    "GEMINI_EXTRA_MODELS", ""
-).strip()
+if API_KEY:
+    try:
+        client = genai.Client(api_key=API_KEY)
+        logger.info("Client Gemini initialisé.")
+    except Exception:
+        logger.exception("Impossible d'initialiser le client Gemini.")
+else:
+    logger.error(
+        "GEMINI_API_KEY absente au démarrage du serveur."
+    )
 
-if not API_KEY:
-    logger.error("GEMINI_API_KEY n'est pas configurée.")
 
-client = genai.Client(api_key=API_KEY) if API_KEY else None
+# ==================================================
+# APPLICATION FASTAPI
+# ==================================================
 
-app = FastAPI(title="NOVA API", version=APP_VERSION)
+app = FastAPI(
+    title="NOVA API",
+    version=APP_VERSION,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,9 +70,9 @@ app.add_middleware(
 )
 
 
-# --------------------------------------------------
+# ==================================================
 # MODÈLES DE DONNÉES
-# --------------------------------------------------
+# ==================================================
 
 class ChatRequest(BaseModel):
     text: str = Field(min_length=1, max_length=20000)
@@ -71,49 +87,122 @@ class ChatResponse(BaseModel):
     memory_updates: list[Any] = Field(default_factory=list)
 
 
-# --------------------------------------------------
-# MODÈLES GEMINI ET BASCULEMENT AUTOMATIQUE
-# --------------------------------------------------
+# ==================================================
+# CLÉ API ET MODÈLES
+# ==================================================
+
+def get_api_key() -> str:
+    """
+    Relit la variable d'environnement à chaque vérification.
+    Utile pour diagnostiquer une configuration Render incorrecte.
+    """
+    return read_env("GEMINI_API_KEY")
+
+
+def get_client():
+    """
+    Réutilise le client existant si la clé n'a pas changé.
+    Recrée le client si la clé a été ajoutée ou modifiée
+    dans l'environnement avant un redémarrage.
+    """
+    global client, API_KEY
+
+    current_key = get_api_key()
+
+    if not current_key:
+        return None
+
+    if client is None or current_key != API_KEY:
+        client = genai.Client(api_key=current_key)
+        API_KEY = current_key
+
+    return client
+
 
 def get_model_candidates() -> list[str]:
-    raw = [
+    """Retourne les modèles configurés, sans doublons."""
+    candidates = [
         PRIMARY_MODEL,
         FALLBACK_MODEL,
         *EXTRA_MODELS.split(","),
     ]
 
-    models = []
-    for name in raw:
-        name = name.strip()
-        if name and name not in models:
-            models.append(name)
+    result = []
 
-    return models
+    for model in candidates:
+        model = model.strip()
+
+        if model and model not in result:
+            result.append(model)
+
+    return result
 
 
 def is_retryable_error(exc: Exception) -> bool:
+    """Détecte les erreurs potentiellement temporaires."""
     message = str(exc).lower()
 
     markers = (
-        "429", "500", "502", "503", "504",
-        "unavailable", "resource_exhausted",
-        "deadline_exceeded", "internal server error",
-        "temporarily", "timeout", "timed out",
-        "connection reset", "overloaded",
+        "429",
+        "500",
+        "502",
+        "503",
+        "504",
+        "unavailable",
+        "resource_exhausted",
+        "deadline_exceeded",
+        "internal server error",
+        "temporarily",
+        "timeout",
+        "timed out",
+        "connection reset",
+        "overloaded",
+        "service unavailable",
     )
 
     return any(marker in message for marker in markers)
 
 
-def generate_with_fallback(contents: str, fast: bool = False) -> str:
-    if client is None:
-        raise RuntimeError("La clé API Gemini n'est pas configurée.")
+def is_permanent_error(exc: Exception) -> bool:
+    """Détecte les erreurs qui nécessitent une correction."""
+    message = str(exc).lower()
+
+    markers = (
+        "api key not valid",
+        "invalid api key",
+        "permission_denied",
+        "unauthenticated",
+        "api_key_invalid",
+        "does not exist",
+        "not found",
+    )
+
+    return any(marker in message for marker in markers)
+
+
+# ==================================================
+# GÉNÉRATION GEMINI AVEC SECOURS
+# ==================================================
+
+def generate_with_fallback(
+    contents: str,
+    fast: bool = False,
+) -> str:
+
+    active_client = get_client()
+
+    if active_client is None:
+        raise RuntimeError(
+            "GEMINI_API_KEY absente ou vide dans l'environnement."
+        )
 
     models = get_model_candidates()
-    if not models:
-        raise RuntimeError("Aucun modèle Gemini n'est configuré.")
 
-    # Le mode rapide évite les longues séries de tentatives.
+    if not models:
+        raise RuntimeError(
+            "Aucun modèle Gemini n'est configuré."
+        )
+
     attempts_per_model = 1 if fast else 2
     errors = []
 
@@ -121,11 +210,13 @@ def generate_with_fallback(contents: str, fast: bool = False) -> str:
         for attempt in range(attempts_per_model):
             try:
                 logger.info(
-                    "Appel Gemini : modèle=%s, tentative=%s",
-                    model, attempt + 1,
+                    "Gemini : modèle=%s, tentative=%s/%s",
+                    model,
+                    attempt + 1,
+                    attempts_per_model,
                 )
 
-                response = client.models.generate_content(
+                response = active_client.models.generate_content(
                     model=model,
                     contents=contents,
                     config=types.GenerateContentConfig(
@@ -134,74 +225,90 @@ def generate_with_fallback(contents: str, fast: bool = False) -> str:
                     ),
                 )
 
-                text = getattr(response, "text", None)
-                if not text or not text.strip():
-                    raise RuntimeError("Réponse vide du modèle.")
+                answer = getattr(response, "text", None)
 
-                logger.info("Réponse obtenue avec %s", model)
-                return text.strip()
+                if not answer or not answer.strip():
+                    raise RuntimeError(
+                        "Le modèle a renvoyé une réponse vide."
+                    )
+
+                logger.info(
+                    "Réponse Gemini obtenue avec le modèle %s.",
+                    model,
+                )
+
+                return answer.strip()
 
             except Exception as exc:
-                errors.append(f"{model}: {exc}")
+                errors.append((model, str(exc)))
+
                 logger.warning(
-                    "Échec du modèle %s : %s", model, exc
+                    "Échec Gemini sur %s : %s",
+                    model,
+                    exc,
                 )
 
-                # Les erreurs de clé, de permission ou de modèle
-                # introuvable ne se corrigent pas en réessayant
-                # le même modèle.
-                message = str(exc).lower()
-                permanent_markers = (
-                    "api key not valid",
-                    "invalid api key",
-                    "permission_denied",
-                    "unauthenticated",
-                    "not found",
-                    "does not exist",
-                )
-
-                if any(marker in message for marker in permanent_markers):
+                if is_permanent_error(exc):
+                    logger.warning(
+                        "Erreur permanente sur %s ; "
+                        "passage au modèle suivant.",
+                        model,
+                    )
                     break
 
                 if not is_retryable_error(exc):
                     break
 
                 if attempt + 1 < attempts_per_model:
-                    delay = min(2 ** attempt, 6) + random.uniform(0, 0.8)
+                    delay = min(2 ** attempt, 6)
+                    delay += random.uniform(0, 0.8)
+
+                    logger.info(
+                        "Nouvelle tentative dans %.1f secondes.",
+                        delay,
+                    )
                     time.sleep(delay)
 
-        logger.warning("Passage au modèle suivant après %s", model)
+        logger.warning(
+            "Le modèle %s n'a pas fonctionné ; "
+            "essai du prochain modèle.",
+            model,
+        )
 
+    # Ne jamais inclure la clé API dans le message envoyé au client.
     logger.error(
         "Tous les modèles ont échoué : %s",
-        " | ".join(errors[-5:]),
+        " | ".join(
+            f"{model}: {message[:250]}"
+            for model, message in errors[-5:]
+        ),
     )
 
     raise RuntimeError(
-        "Les modèles IA sont momentanément indisponibles. "
-        "Réessaie dans quelques instants."
+        "Aucun modèle Gemini configuré n'a pu répondre."
     )
 
 
-# --------------------------------------------------
-# CONSTRUCTION DU CONTEXTE DU CHAT
-# --------------------------------------------------
+# ==================================================
+# PROMPT ET MÉMOIRE
+# ==================================================
 
 def build_prompt(data: ChatRequest) -> str:
-    history = data.history[-12:] if data.history else []
+    history = data.history[-12:]
 
     instructions = """
 Tu es NOVA, une assistante IA utile, claire et chaleureuse.
 Réponds dans la langue utilisée par l'utilisateur.
-Utilise le contexte mémoire uniquement s'il est pertinent.
-Ne prétends jamais avoir effectué une action que tu n'as pas faite.
-Ne révèle jamais de clés API ou de secrets.
-Retourne exclusivement un objet JSON valide au format :
+Utilise le contexte mémoire seulement lorsqu'il est pertinent.
+Ne prétends jamais avoir réalisé une action que tu n'as pas faite.
+Ne révèle jamais de clés API ou d'informations secrètes.
+Retourne uniquement un objet JSON valide avec cette structure :
 {
-  "reply": "Ta réponse ici",
+  "reply": "Réponse destinée à l'utilisateur",
   "memory_updates": []
 }
-memory_updates doit être une liste. N'ajoute pas de Markdown autour du JSON.
+memory_updates doit être une liste.
+N'ajoute aucun bloc Markdown autour du JSON.
 """
 
     payload = {
@@ -213,19 +320,24 @@ memory_updates doit être une liste. N'ajoute pas de Markdown autour du JSON.
         "message": data.text,
     }
 
-    return json.dumps(payload, ensure_ascii=False)
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+    )
 
 
 def parse_ai_response(raw: str) -> ChatResponse:
-    # Supporte aussi une réponse enveloppée dans un bloc Markdown.
     cleaned = raw.strip()
 
     if cleaned.startswith("```"):
         lines = cleaned.splitlines()
+
         if lines and lines[0].startswith("```"):
             lines = lines[1:]
+
         if lines and lines[-1].strip().startswith("```"):
             lines = lines[:-1]
+
         cleaned = "\n".join(lines).strip()
 
     try:
@@ -250,16 +362,19 @@ def parse_ai_response(raw: str) -> ChatResponse:
     except (json.JSONDecodeError, TypeError):
         pass
 
-    # Si le modèle n'a pas respecté le JSON, préserver son texte.
+    # Préserve une réponse textuelle même si le JSON est incorrect.
     if cleaned:
-        return ChatResponse(reply=cleaned, memory_updates=[])
+        return ChatResponse(
+            reply=cleaned,
+            memory_updates=[],
+        )
 
-    raise RuntimeError("La réponse IA est vide.")
+    raise RuntimeError("La réponse de Gemini est vide.")
 
 
-# --------------------------------------------------
-# ROUTES WEB
-# --------------------------------------------------
+# ==================================================
+# ROUTES PRINCIPALES
+# ==================================================
 
 @app.get("/")
 def home():
@@ -270,6 +385,15 @@ def home():
         "app": "NOVA",
         "version": APP_VERSION,
         "status": "online",
+    }
+
+
+@app.get("/api")
+def api_root():
+    return {
+        "app": "NOVA",
+        "version": APP_VERSION,
+        "message": "API opérationnelle",
     }
 
 
@@ -284,17 +408,26 @@ def health():
 
 @app.get("/api/status")
 def status():
+    """
+    Vérifie la présence de la clé sans jamais la révéler.
+    Cette route ne garantit pas que Gemini accepte la clé :
+    seul un véritable appel permet de vérifier l'accès.
+    """
+    key_present = bool(get_api_key())
+
     return {
         "status": "ok",
         "version": APP_VERSION,
-        "configured": client is not None,
+        "configured": key_present and get_client() is not None,
+        "api_key_present": key_present,
         "models_configured": len(get_model_candidates()),
+        "primary_model": PRIMARY_MODEL,
     }
 
 
-# --------------------------------------------------
-# CHAT
-# --------------------------------------------------
+# ==================================================
+# ROUTE CHAT
+# ==================================================
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(data: ChatRequest):
@@ -304,37 +437,40 @@ def chat(data: ChatRequest):
             detail="Le message est vide.",
         )
 
-    if client is None:
+    if get_client() is None:
         raise HTTPException(
             status_code=503,
-            detail="La clé API Gemini n'est pas configurée sur le serveur.",
+            detail=(
+                "La clé API Gemini est absente du serveur. "
+                "Vérifie GEMINI_API_KEY dans Render."
+            ),
         )
 
     try:
         prompt = build_prompt(data)
+
         raw = generate_with_fallback(
             contents=prompt,
             fast=data.fast,
         )
+
         return parse_ai_response(raw)
 
-    except Exception as exc:
-        logger.exception("Erreur dans /api/chat")
+    except Exception:
+        logger.exception("Erreur pendant le traitement du chat.")
 
-        # Ne pas transmettre au navigateur les détails internes,
-        # les identifiants ou les informations sensibles.
         raise HTTPException(
             status_code=503,
             detail=(
                 "NOVA ne peut pas répondre pour le moment. "
-                "Réessaie dans quelques instants."
+                "Vérifie les logs du serveur et réessaie."
             ),
-        ) from exc
+        )
 
 
-# --------------------------------------------------
-# MÉTÉO
-# --------------------------------------------------
+# ==================================================
+# ROUTE MÉTÉO
+# ==================================================
 
 @app.get("/api/weather")
 def weather(city: str = "Grenoble"):
@@ -348,18 +484,21 @@ def weather(city: str = "Grenoble"):
 
     try:
         response = requests.get(
-            "https://wttr.in/" + requests.utils.quote(city, safe=""),
+            "https://wttr.in/"
+            + requests.utils.quote(city, safe=""),
             params={"format": "j1"},
             timeout=8,
             headers={"User-Agent": "NOVA-Weather/1.0"},
         )
+
         response.raise_for_status()
         result = response.json()
 
         current = result["current_condition"][0]
-        description = current.get("weatherDesc", [{}])[0].get(
-            "value", "Inconnue"
-        )
+
+        description = current.get(
+            "weatherDesc", [{}]
+        )[0].get("value", "Inconnue")
 
         return {
             "city": city,
@@ -372,21 +511,18 @@ def weather(city: str = "Grenoble"):
         }
 
     except Exception as exc:
-        logger.warning("Erreur météo pour %s : %s", city, exc)
+        logger.warning(
+            "Erreur météo pour %s : %s",
+            city,
+            exc,
+        )
+
         raise HTTPException(
             status_code=502,
             detail="La météo est momentanément indisponible.",
-        ) from exc
+        )
 
 
-# --------------------------------------------------
-# DÉMARRAGE
-# --------------------------------------------------
-
-@app.get("/api")
-def api_root():
-    return {
-        "app": "NOVA",
-        "version": APP_VERSION,
-        "message": "API opérationnelle",
-    }
+# ==================================================
+# FIN DU SERVEUR
+# ==================================================
