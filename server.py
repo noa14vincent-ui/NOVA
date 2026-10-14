@@ -1,4 +1,4 @@
-```python
+
 import os
 import json
 import time
@@ -650,4 +650,4 @@ def weather(city: str = "Grenoble"):
 # ==================================================
 # FIN DU SERVEUR
 # ==================================================
-```
+
