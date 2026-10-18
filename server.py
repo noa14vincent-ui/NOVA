@@ -6,16 +6,21 @@ import time
 from typing import Any
 
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
-APP_VERSION = "6.1.0"
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+APP_VERSION = "6.2.0"
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 logger = logging.getLogger("nova")
+
+HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", "8"))
+GEMINI_TIMEOUT = float(os.getenv("GEMINI_TIMEOUT", "35"))
+MAX_RETRIES = max(0, min(int(os.getenv("GEMINI_MAX_RETRIES", "2")), 4))
+WEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "").strip()
 
 
 def env(name: str, default: str = "") -> str:
@@ -28,7 +33,7 @@ def model_list() -> list[str]:
         env("GEMINI_FALLBACK_MODEL"),
         *env("GEMINI_EXTRA_MODELS").split(","),
     ]
-    result = []
+    result: list[str] = []
     for item in candidates:
         item = item.strip()
         if item and item not in result:
@@ -48,20 +53,29 @@ def get_client():
         return None
     if client is None or key != client_key:
         try:
-            client = genai.Client(api_key=key)
+            client = genai.Client(
+                api_key=key,
+                http_options=types.HttpOptions(timeout=int(GEMINI_TIMEOUT * 1000)),
+            )
             client_key = key
         except Exception:
             client = None
+            client_key = ""
             logger.exception("Initialisation du client Gemini impossible.")
     return client
 
 
-app = FastAPI(title="NOVA API", version=APP_VERSION, description="API de NOVA")
+app = FastAPI(
+    title="NOVA API",
+    version=APP_VERSION,
+    description="API de NOVA",
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -80,17 +94,3 @@ class ChatResponse(BaseModel):
 
 
 def retryable(exc: Exception) -> bool:
-    msg = str(exc).lower()
-    return any(x in msg for x in (
-        "429", "500", "502", "503", "504", "unavailable",
-        "resource_exhausted", "deadline_exceeded", "temporarily",
-        "timeout", "timed out", "connection reset", "overloaded",
-        "service unavailable", "rate limit", "internal server error",
-    ))
-
-
-def permanent(exc: Exception) -> bool:
-    msg = str(exc).lower()
-    return any(x in msg for x in (
-        "api key not valid", "invalid api key", "permission_denied",
-        "unauthenticated", "api_key_invalid", "model not found",
