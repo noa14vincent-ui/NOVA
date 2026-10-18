@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
+from agenda_backend import install_agenda_routes
 
 APP_VERSION = "7.0.0"
 
