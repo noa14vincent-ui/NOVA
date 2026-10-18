@@ -101,7 +101,7 @@ dialog{width:min(92vw,480px);max-height:85vh;overflow:auto;background:#12172b;co
 <section class="panel"><div class="section"><h3>Agenda NOVA</h3><small id="agendaCount">0 événement(s)</small></div>
 <p class="muted">Les événements NOVA restent enregistrés sur cet appareil. Pour les ajouter au Calendrier Apple, exporte un fichier .ics puis ouvre-le sur ton iPhone. NOVA ne peut pas lire directement le calendrier iOS depuis Safari.</p>
 <form id="agendaForm" class="row"><input class="field" id="eventTitle" placeholder="Événement" maxlength="120" required><input class="field" id="eventDate" type="datetime-local" required><button class="primary">Ajouter</button></form>
-<div class="row" style="flex-wrap:wrap;margin-top:10px"><button type="button" id="exportCalendar" class="primary">Exporter vers Calendrier iPhone (.ics)</button><label class="field" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">Importer un fichier .ics<input id="importCalendar" type="file" accept=".ics,text/calendar" style="max-width:170px"></label></div>
+<div class="row" style="flex-wrap:wrap;margin-top:10px"><button type="button" id="exportCalendar" class="primary">Exporter vers Calendrier iPhone (.ics)</button><label class="field" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">Importer un fichier<input id="importCalendar" type="file" accept=".ics,text/calendar" style="max-width:170px"></label></div>
 <small class="muted">L’import ajoute les événements trouvés dans le fichier à l’agenda NOVA, sans supprimer les événements existants.</small>
 <div id="calendarStatus" class="muted" role="status" aria-live="polite" style="margin-top:8px"></div>
 <div id="agendaList"></div></section>
