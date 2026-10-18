@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
-APP_VERSION = "6.2.0"
+APP_VERSION = "6.2.1"
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 logger = logging.getLogger("nova")
 
@@ -29,7 +29,7 @@ def env(name: str, default: str = "") -> str:
 
 def model_list() -> list[str]:
     candidates = [
-        env("GEMINI_MODEL", "gemini-2.5-flash"),
+        env("GEMINI_MODEL", "gemini-3.8-flash"),
         env("GEMINI_FALLBACK_MODEL"),
         *env("GEMINI_EXTRA_MODELS").split(","),
     ]
