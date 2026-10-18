@@ -54,7 +54,7 @@ button,.field{border:1px solid var(--border);border-radius:13px;padding:10px;bac
 .mic-button.listening{border-color:var(--b);box-shadow:0 0 0 4px color-mix(in srgb,var(--b) 17%,transparent);animation:micPulse 1s ease-in-out infinite}
 @keyframes micPulse{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--b) 7%,transparent)}}
 .gem-card h4{font-size:11px;margin:0 0 8px}.gem-card p{font-size:12px;margin:0 0 10px;line-height:1.5}.gem-actions{display:flex;gap:6px;flex-wrap:wrap}.gem-actions button{font-size:11px;padding:7px}
-.list-item{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:8px;font-size:12px}.list-item span{overflow-wrap:anywhere}
+.list-item{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:8px;font-size:12px}.list-item span{overflow-wrap:anywhere;flex:1}.list-actions{display:flex;gap:5px;flex-wrap:wrap}.list-actions button{font-size:11px;padding:7px}
 dialog{width:min(92vw,480px);max-height:85vh;overflow:auto;background:#12172b;color:var(--text);border:1px solid var(--border);border-radius:18px}dialog::backdrop{background:#000a;backdrop-filter:blur(5px)}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#45e3a5;margin-right:6px}.status-dot.off{background:#ff8178}
 .typing{display:flex;gap:4px;align-items:center}.typing i{width:5px;height:5px;border-radius:50%;background:var(--b);animation:pulse 1s infinite alternate}.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}@keyframes pulse{to{opacity:.25;transform:translateY(-3px)}}
@@ -98,7 +98,13 @@ dialog{width:min(92vw,480px);max-height:85vh;overflow:auto;background:#12172b;co
 
 <section class="panel"><h3>Météo</h3><form id="weatherForm" class="row"><input class="field" id="city" value="Grenoble" maxlength="100" placeholder="Ville"><button class="primary">Voir</button></form><div id="weatherResult" class="muted" style="margin-top:10px" aria-live="polite"></div></section>
 
-<section class="panel"><h3>Agenda local</h3><form id="agendaForm" class="row"><input class="field" id="eventTitle" placeholder="Événement" maxlength="120" required><input class="field" id="eventDate" type="datetime-local" required><button class="primary">Ajouter</button></form><div id="agendaList"></div></section>
+<section class="panel"><div class="section"><h3>Agenda NOVA</h3><small id="agendaCount">0 événement(s)</small></div>
+<p class="muted">Les événements NOVA restent enregistrés sur cet appareil. Pour les ajouter au Calendrier Apple, exporte un fichier .ics puis ouvre-le sur ton iPhone. NOVA ne peut pas lire directement le calendrier iOS depuis Safari.</p>
+<form id="agendaForm" class="row"><input class="field" id="eventTitle" placeholder="Événement" maxlength="120" required><input class="field" id="eventDate" type="datetime-local" required><button class="primary">Ajouter</button></form>
+<div class="row" style="flex-wrap:wrap;margin-top:10px"><button type="button" id="exportCalendar" class="primary">Exporter vers Calendrier iPhone (.ics)</button><label class="field" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">Importer un fichier .ics<input id="importCalendar" type="file" accept=".ics,text/calendar" style="max-width:170px"></label></div>
+<small class="muted">L’import ajoute les événements trouvés dans le fichier à l’agenda NOVA, sans supprimer les événements existants.</small>
+<div id="calendarStatus" class="muted" role="status" aria-live="polite" style="margin-top:8px"></div>
+<div id="agendaList"></div></section>
 
 <section class="panel"><h3>Rappels locaux</h3><form id="reminderForm" class="row"><input class="field" id="reminderText" placeholder="Nouveau rappel" maxlength="180" required><button class="primary">Ajouter</button></form><div id="reminderList"></div></section>
 </div>
@@ -304,14 +310,101 @@ async function getWeather(city){
  }catch(e){$("#weatherResult").textContent=e.message}
 }
 $("#weatherForm").addEventListener("submit",e=>{e.preventDefault();getWeather($("#city").value)});
+
+function escapeICS(value){
+ return String(value||"").replace(/\\/g,"\\\\").replace(/\r\n|\n|\r/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");
+}
+function icsDate(value){
+ const date=new Date(value);
+ if(Number.isNaN(date.getTime()))return null;
+ return date.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}Z$/,"Z");
+}
+function makeICS(items){
+ const events=items.filter(x=>x && x.title && x.date && icsDate(x.date));
+ const lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//NOVA 6//Agenda//FR","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+ for(const item of events){
+  const start=icsDate(item.date);if(!start)continue;
+  const endDate=new Date(new Date(item.date).getTime()+60*60*1000);
+  const end=icsDate(endDate.toISOString());
+  lines.push("BEGIN:VEVENT","UID:"+escapeICS(item.id||uid())+"@nova6.local","DTSTAMP:"+icsDate(new Date().toISOString()),"DTSTART:"+start,"DTEND:"+end,"SUMMARY:"+escapeICS(item.title),"END:VEVENT");
+ }
+ lines.push("END:VCALENDAR");
+ return lines.join("\r\n")+"\r\n";
+}
+function downloadICS(items,filename="nova-agenda.ics"){
+ const valid=items.filter(x=>x && x.title && x.date && !Number.isNaN(new Date(x.date).getTime()));
+ if(!valid.length){$("#calendarStatus").textContent="Aucun événement daté à exporter.";return}
+ const blob=new Blob([makeICS(valid)],{type:"text/calendar;charset=utf-8"});
+ const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
+ $("#calendarStatus").textContent=valid.length+" événement(s) exporté(s). Ouvre le fichier .ics sur l’iPhone puis choisis Calendrier pour les ajouter.";
+}
+function unescapeICS(value){
+ return String(value||"").replace(/\\n/gi,"\n").replace(/\\,/g,",").replace(/\\;/g,";").replace(/\\\\/g,"\\");
+}
+function parseICSDate(value){
+ if(!value)return null;
+ const v=value.trim();
+ if(/^\d{8}$/.test(v))return v.slice(0,4)+"-"+v.slice(4,6)+"-"+v.slice(6,8)+"T09:00";
+ const m=v.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z)?$/);
+ if(!m)return null;
+ const iso=`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]||"00"}${m[7]?"Z":""}`;
+ const d=new Date(iso);if(Number.isNaN(d.getTime()))return null;
+ const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);
+ return `${local.getFullYear()}-${String(local.getMonth()+1).padStart(2,"0")}-${String(local.getDate()).padStart(2,"0")}T${String(local.getHours()).padStart(2,"0")}:${String(local.getMinutes()).padStart(2,"0")}`;
+}
+function parseICS(text){
+ const unfolded=String(text||"").replace(/\r?\n[ \t]/g,"");
+ const blocks=unfolded.split(/BEGIN:VEVENT/i).slice(1);
+ const parsed=[];
+ for(const block of blocks){
+  const body=block.split(/END:VEVENT/i)[0]||"";
+  const lines=body.split(/\r?\n/);
+  let title="",date="";
+  for(const line of lines){
+   const idx=line.indexOf(":");if(idx<0)continue;
+   const prop=line.slice(0,idx).toUpperCase(),value=line.slice(idx+1);
+   if(prop.startsWith("SUMMARY"))title=unescapeICS(value).trim();
+   if(prop.startsWith("DTSTART"))date=parseICSDate(value);
+  }
+  if(title && date)parsed.push({id:uid(),title:title.slice(0,120),date,source:"ics"});
+ }
+ return parsed;
+}
+$("#exportCalendar").addEventListener("click",()=>downloadICS(agenda));
+$("#importCalendar").addEventListener("change",async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  if(file.size>5*1024*1024)throw Error("Le fichier est trop volumineux (maximum 5 Mo).");
+  const imported=parseICS(await file.text());
+  let added=0;
+  for(const item of imported){
+   const duplicate=agenda.some(a=>String(a.title).toLowerCase()===item.title.toLowerCase() && Math.abs(new Date(a.date)-new Date(item.date))<60000);
+   if(!duplicate){agenda.push(item);added++}
+  }
+  write(keys.agenda,agenda);renderList($("#agendaList"),agenda,"agenda");
+  $("#calendarStatus").textContent=added+" événement(s) importé(s) dans NOVA"+(imported.length-added?" ; "+(imported.length-added)+" doublon(s) ignoré(s).":".");
+ }catch(err){$("#calendarStatus").textContent="Import impossible : "+err.message}
+ finally{e.target.value=""}
+});
+
 function renderList(root,items,type){
- root.replaceChildren();if(!items.length){root.textContent="Rien pour le moment.";root.className="muted";return}root.className="";
+ root.replaceChildren();
+ if(type==="agenda")$("#agendaCount").textContent=items.length+" événement(s)";
+ if(!items.length){root.textContent="Rien pour le moment.";root.className="muted";return}
+ root.className="";
  items.slice().sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).forEach(item=>{
   const row=document.createElement("div");row.className="list-item";const label=document.createElement("span");
   label.textContent=item.title+(item.date?" · "+new Date(item.date).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):"");
+  const actions=document.createElement("div");actions.className="list-actions";
+  if(type==="agenda"){
+   const exportBtn=document.createElement("button");exportBtn.type="button";exportBtn.textContent="Calendrier";
+   exportBtn.title="Exporter cet événement vers Calendrier Apple";
+   exportBtn.onclick=()=>downloadICS([item],"nova-evenement.ics");actions.append(exportBtn);
+  }
   const del=document.createElement("button");del.type="button";del.textContent="Supprimer";
   del.onclick=()=>{if(type==="agenda"){agenda=agenda.filter(x=>x.id!==item.id);write(keys.agenda,agenda);renderList(root,agenda,"agenda")}else{reminders=reminders.filter(x=>x.id!==item.id);write(keys.rem,reminders);renderList(root,reminders,"reminders")}};
-  row.append(label,del);root.append(row);
+  actions.append(del);row.append(label,actions);root.append(row);
  });
 }
 $("#agendaForm").addEventListener("submit",e=>{e.preventDefault();agenda.push({id:uid(),title:$("#eventTitle").value.trim(),date:$("#eventDate").value});write(keys.agenda,agenda);renderList($("#agendaList"),agenda,"agenda");e.target.reset()});
