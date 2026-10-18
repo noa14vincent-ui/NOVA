@@ -939,5 +939,6 @@ def test_gemini(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
+    install_agenda_routes(app)
 
     uvicorn.run("server:app", host="0.0.0.0", port=int(env("PORT", "8000")))
