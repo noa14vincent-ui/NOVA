@@ -36,7 +36,23 @@ button,.field{border:1px solid var(--border);border-radius:13px;padding:10px;bac
 .themes button{padding:0;overflow:hidden;text-align:left}.swatch{height:36px;display:block}.theme-name{display:block;padding:8px;font-size:11px}
 .memory-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
 .gem-card{padding:12px;min-width:0;border:1px solid var(--border);border-radius:16px;background:linear-gradient(140deg,#ffffff10,transparent 60%);overflow-wrap:anywhere}
-.gem{width:42px;height:42px;margin:2px 0 12px;clip-path:polygon(50% 0,96% 26%,82% 78%,50% 100%,13% 80%,3% 28%);background:linear-gradient(135deg,#fff,var(--a) 35%,#1b1744 75%,var(--b));filter:drop-shadow(0 0 12px var(--a));transform:rotate(-12deg)}
+.gem{position:relative;width:46px;height:48px;margin:2px 0 12px;isolation:isolate;clip-path:polygon(50% 0,88% 13%,100% 43%,76% 88%,50% 100%,15% 82%,0 43%,15% 13%);background:linear-gradient(128deg,#fff 0%,#e7f8ff 9%,var(--b) 20%,var(--a) 43%,#171b46 68%,#8ff7ff 83%,#fff 100%);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--a) 70%,transparent));transform:rotate(-9deg);animation:gemFloat 4s ease-in-out infinite}
+.gem::before{content:"";position:absolute;inset:0;clip-path:polygon(50% 0,50% 100%,15% 13%);background:linear-gradient(155deg,#fff9, color-mix(in srgb,var(--b) 72%,transparent),#ffffff05)}
+.gem::after{content:"";position:absolute;inset:0;clip-path:polygon(50% 0,88% 13%,100% 43%,50% 100%,67% 38%);background:linear-gradient(145deg,#ffffffb8,transparent 38%,#080b187d 88%);border-left:1px solid #ffffff88}
+@keyframes gemFloat{0%,100%{transform:translateY(0) rotate(-9deg)}50%{transform:translateY(-3px) rotate(-5deg)}}
+.gem-card{position:relative;overflow:hidden}
+.gem-card::before{content:"";position:absolute;top:-70%;left:-40%;width:45%;height:220%;transform:rotate(24deg);background:linear-gradient(90deg,transparent,#ffffff0d,transparent);pointer-events:none;transition:left .65s ease}
+.gem-card:hover::before{left:120%}
+.memory-toast{position:fixed;z-index:9999;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,24px) scale(.94);width:min(90%,360px);padding:15px 18px;display:flex;align-items:center;gap:13px;border:1px solid color-mix(in srgb,var(--b) 60%,transparent);border-radius:18px;background:color-mix(in srgb,var(--panel) 92%,#080b18);box-shadow:0 0 35px color-mix(in srgb,var(--a) 35%,transparent);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;backdrop-filter:blur(18px)}
+.memory-toast.visible{opacity:1;transform:translate(-50%,0) scale(1)}
+.memory-crystal{position:relative;width:38px;height:40px;flex-shrink:0;clip-path:polygon(50% 0,86% 14%,100% 44%,74% 87%,50% 100%,18% 84%,0 43%,16% 13%);background:linear-gradient(130deg,#fff 0%,#dffcff 12%,var(--b) 26%,var(--a) 53%,#16173c 76%,#fff 100%);display:grid;place-items:center;color:white;font-size:18px;box-shadow:0 0 20px color-mix(in srgb,var(--b) 40%,transparent);animation:crystalPulse 1.2s ease-in-out infinite alternate}
+.memory-crystal::after{content:"";position:absolute;inset:0;background:linear-gradient(145deg,#ffffffc9,transparent 40%,#0006);clip-path:polygon(50% 0,50% 100%,16% 13%)}
+.memory-toast-title{font-weight:800;font-size:14px}.memory-toast-subtitle{margin-top:4px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+@keyframes crystalPulse{from{transform:scale(.92) rotate(-5deg);filter:brightness(.95)}to{transform:scale(1.08) rotate(5deg);filter:brightness(1.2)}}
+.mic-button{width:44px;height:42px;padding:0;display:grid;place-items:center;flex:0 0 44px}
+.mic-button svg{width:21px;height:21px;display:block}
+.mic-button.listening{border-color:var(--b);box-shadow:0 0 0 4px color-mix(in srgb,var(--b) 17%,transparent);animation:micPulse 1s ease-in-out infinite}
+@keyframes micPulse{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--b) 7%,transparent)}}
 .gem-card h4{font-size:11px;margin:0 0 8px}.gem-card p{font-size:12px;margin:0 0 10px;line-height:1.5}.gem-actions{display:flex;gap:6px;flex-wrap:wrap}.gem-actions button{font-size:11px;padding:7px}
 .list-item{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:8px;font-size:12px}.list-item span{overflow-wrap:anywhere}
 dialog{width:min(92vw,480px);max-height:85vh;overflow:auto;background:#12172b;color:var(--text);border:1px solid var(--border);border-radius:18px}dialog::backdrop{background:#000a;backdrop-filter:blur(5px)}
@@ -47,7 +63,7 @@ dialog{width:min(92vw,480px);max-height:85vh;overflow:auto;background:#12172b;co
 </head>
 <body data-theme="default">
 <div class="app">
-<header><div class="brand">NOVA<small>ASSISTANT PERSONNEL · V6</small></div><button id="settingsBtn" type="button">⚙ Réglages</button></header>
+<header><div class="brand">NOVA<small>ASSISTANT PERSONNEL · V6</small></div><button id="settingsBtn" type="button">Réglages</button></header>
 <section class="panel">
 <small>TON ESPACE INTELLIGENT</small><h2>Bonjour. On avance ?</h2>
 <p class="muted">Un assistant pour réfléchir, créer, apprendre et organiser tes projets.</p>
@@ -56,10 +72,11 @@ dialog{width:min(92vw,480px);max-height:85vh;overflow:auto;background:#12172b;co
 
 <section class="panel">
 <div class="section"><h3>Conversation NOVA</h3><button type="button" id="newChat">Nouvelle discussion</button></div>
-<div class="messages" id="messages" aria-live="polite"><div class="msg bot">Salut ! 👋 Je suis NOVA. Pose-moi une question ou demande-moi de retenir une préférence.</div></div>
+<div class="messages" id="messages" aria-live="polite"><div class="msg bot">Bonjour. Je suis NOVA, ton assistant personnel. Pose-moi une question ou demande-moi de retenir une préférence.</div></div>
 <form id="chatForm">
 <textarea class="field" id="prompt" rows="2" maxlength="12000" placeholder="Écris ton message…" required></textarea>
-<div class="row" style="margin-top:8px;flex-wrap:wrap"><button type="button" id="mic">🎙 Dicter</button><label class="muted" style="flex:1;font-size:12px;min-width:110px"><input id="fast" type="checkbox"> Mode rapide</label><button class="primary" id="send">Envoyer ↗</button></div>
+<div class="row" style="margin-top:8px;flex-wrap:wrap"><button type="button" id="mic" class="mic-button" aria-label="Démarrer la dictée vocale" title="Dictée vocale">
+<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M8.5 21.5h7"></path></svg></button><label class="muted" style="flex:1;font-size:12px;min-width:110px"><input id="fast" type="checkbox"> Mode rapide</label><button class="primary" id="send">Envoyer</button></div>
 <small>Entrée pour envoyer · Maj + Entrée pour une nouvelle ligne</small>
 </form>
 </section>
@@ -74,22 +91,26 @@ dialog{width:min(92vw,480px);max-height:85vh;overflow:auto;background:#12172b;co
 <button data-theme="solar" type="button"><span class="swatch" style="background:linear-gradient(120deg,#ffdf43,#ff683a)"></span><span class="theme-name">Solaire</span></button>
 </div></section>
 
-<section class="panel"><div class="section"><h3>💎 Cristaux de mémoire</h3><small id="memoryCount">0 souvenir(s)</small></div>
+<section class="panel"><div class="section"><h3>Cristaux de mémoire</h3><small id="memoryCount">0 souvenir(s)</small></div>
 <p class="muted">Les souvenirs sont stockés sur cet appareil. Évite d'y enregistrer des informations sensibles.</p>
 <form id="memoryForm" class="row"><input class="field" id="memoryText" maxlength="240" placeholder="Un fait à retenir…" required><button class="primary">Ajouter</button></form><div class="memory-grid" id="memoryGrid"></div>
 </section>
 
-<section class="panel"><h3>🌦 Météo</h3><form id="weatherForm" class="row"><input class="field" id="city" value="Grenoble" maxlength="100" placeholder="Ville"><button class="primary">Voir</button></form><div id="weatherResult" class="muted" style="margin-top:10px" aria-live="polite"></div></section>
+<section class="panel"><h3>Météo</h3><form id="weatherForm" class="row"><input class="field" id="city" value="Grenoble" maxlength="100" placeholder="Ville"><button class="primary">Voir</button></form><div id="weatherResult" class="muted" style="margin-top:10px" aria-live="polite"></div></section>
 
-<section class="panel"><h3>🗓 Agenda local</h3><form id="agendaForm" class="row"><input class="field" id="eventTitle" placeholder="Événement" maxlength="120" required><input class="field" id="eventDate" type="datetime-local" required><button class="primary">Ajouter</button></form><div id="agendaList"></div></section>
+<section class="panel"><h3>Agenda local</h3><form id="agendaForm" class="row"><input class="field" id="eventTitle" placeholder="Événement" maxlength="120" required><input class="field" id="eventDate" type="datetime-local" required><button class="primary">Ajouter</button></form><div id="agendaList"></div></section>
 
-<section class="panel"><h3>🔔 Rappels locaux</h3><form id="reminderForm" class="row"><input class="field" id="reminderText" placeholder="Nouveau rappel" maxlength="180" required><button class="primary">Ajouter</button></form><div id="reminderList"></div></section>
+<section class="panel"><h3>Rappels locaux</h3><form id="reminderForm" class="row"><input class="field" id="reminderText" placeholder="Nouveau rappel" maxlength="180" required><button class="primary">Ajouter</button></form><div id="reminderList"></div></section>
 </div>
 
 <dialog id="settings"><div class="section"><h3>Réglages NOVA</h3><button data-close type="button">Fermer</button></div>
 <p><label><input id="voice" type="checkbox"> Lire les réponses à voix haute</label></p>
-<p><label><input id="confirmMemory" type="checkbox" checked> Demander avant d'enregistrer les souvenirs suggérés</label></p>
-<button id="testGemini" class="primary" type="button">Tester réellement Gemini</button><p id="testResult" class="muted" role="status"></p>
+<p class="voice-note muted">NOVA privilégie une voix française disponible sur ton appareil. La qualité vocale dépend du navigateur et des voix installées.</p>
+<label for="voiceRate">Débit vocal</label>
+<div class="row"><input id="voiceRate" type="range" min="0.85" max="1.12" step="0.01" value="0.96" style="width:100%"><span id="voiceRateValue">0,96×</span></div>
+<button id="testVoice" type="button">Écouter un essai vocal</button>
+<hr style="border-color:var(--border);margin:16px 0">
+<button id="testGemini" class="primary" type="button">Tester Gemini</button><p id="testResult" class="muted" role="status"></p>
 <div class="row" style="flex-wrap:wrap"><button id="export" type="button">Exporter mes données</button><button id="erase" type="button">Effacer les données locales</button></div>
 </dialog>
 
@@ -99,48 +120,110 @@ const $=s=>document.querySelector(s);
 const keys={mem:"novaLongMemoryV1",agenda:"novaAgendaV1",rem:"novaRemindersV1",theme:"novaTheme",settings:"novaSettings",history:"novaChatHistoryV1"};
 const read=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}};
 const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn("Stockage local indisponible",e)}};
-const uid=()=>crypto.randomUUID?.()||String(Date.now())+Math.random();
+const uid=()=>globalThis.crypto?.randomUUID?.()||String(Date.now())+Math.random().toString(16).slice(2);
 let memories=Array.isArray(read(keys.mem,[]))?read(keys.mem,[]):[];
 let agenda=Array.isArray(read(keys.agenda,[]))?read(keys.agenda,[]):[];
 let reminders=Array.isArray(read(keys.rem,[]))?read(keys.rem,[]):[];
-let history=Array.isArray(read(keys.history,[]))?read(keys.history,[]).slice(-12):[];
-let settings={voice:false,confirmMemory:true,...read(keys.settings,{})};
-let busy=false,recognition=null;
+let history=Array.isArray(read(keys.history,[]))?read(keys.history,[]).slice(-10):[];
+let settings={voice:false,voiceRate:0.96,...read(keys.settings,{})};
+let busy=false,recognition=null,memoryToastTimer=null,voiceQueueToken=0,availableVoices=[];
 function setStatus(text,ok=null){$("#status").textContent=text;$("#statusDot").classList.toggle("off",ok!==true)}
 function saveSettings(){write(keys.settings,settings)}
 function setTheme(t){if(!["default","mars","aurora","neon","eclipse","solar"].includes(t))t="default";document.body.dataset.theme=t;try{localStorage.setItem(keys.theme,t)}catch{}}
 setTheme(read(keys.theme,"default"));
 $("#themes").addEventListener("click",e=>{const b=e.target.closest("[data-theme]");if(b)setTheme(b.dataset.theme)});
-function speak(text){if(!("speechSynthesis"in window)){setStatus("Lecture vocale indisponible",false);return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="fr-FR";speechSynthesis.speak(u)}
+
+function loadVoices(){if("speechSynthesis" in window)availableVoices=speechSynthesis.getVoices()||[]}
+loadVoices();
+if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=loadVoices;
+function chooseFrenchVoice(){
+ loadVoices();
+ const french=availableVoices.filter(v=>/^fr([-_]|$)/i.test(v.lang||""));
+ return french.find(v=>/natural|premium|enhanced/i.test(v.name||""))||
+        french.find(v=>/fr[-_]FR/i.test(v.lang||""))||french[0]||null;
+}
+function stopSpeaking(){voiceQueueToken++;if("speechSynthesis" in window)speechSynthesis.cancel()}
+function speak(text){
+ if(!("speechSynthesis" in window)){setStatus("Lecture vocale indisponible",false);return}
+ stopSpeaking();
+ const token=voiceQueueToken;
+ const clean=String(text||"").replace(/```[\s\S]*?```/g,"bloc de code omis").replace(/https?:\/\/\S+/g,"lien").replace(/[*_#>`]/g,"").replace(/\s+/g," ").trim();
+ if(!clean)return;
+ const voice=chooseFrenchVoice();
+ const parts=(clean.match(/[^.!?…]+(?:[.!?…]+|$)/g)||[clean]).map(s=>s.trim()).filter(Boolean);
+ const queue=parts.length?parts:[clean];
+ const rate=Math.min(1.12,Math.max(.85,Number(settings.voiceRate)||.96));
+ let index=0;
+ function next(){
+  if(token!==voiceQueueToken||index>=queue.length)return;
+  const utterance=new SpeechSynthesisUtterance(queue[index++]);
+  utterance.lang="fr-FR";if(voice)utterance.voice=voice;
+  utterance.rate=rate;utterance.pitch=1;utterance.volume=1;
+  utterance.onend=()=>{if(token===voiceQueueToken)next()};
+  utterance.onerror=()=>{if(token===voiceQueueToken)next()};
+  speechSynthesis.speak(utterance);
+ }
+ next();
+}
+function showMemoryToast(text){
+ let toast=$("#memoryToast");
+ if(!toast){
+  toast=document.createElement("div");toast.id="memoryToast";toast.className="memory-toast";
+  toast.setAttribute("role","status");toast.setAttribute("aria-live","polite");
+  toast.innerHTML='<div class="memory-crystal" aria-hidden="true"></div><div><div class="memory-toast-title">Informations enregistrées</div><div class="memory-toast-subtitle"></div></div>';
+  document.body.append(toast);
+ }
+ toast.querySelector(".memory-toast-subtitle").textContent=String(text||"Souvenir ajouté à la mémoire").slice(0,180);
+ toast.classList.remove("visible");clearTimeout(memoryToastTimer);
+ requestAnimationFrame(()=>toast.classList.add("visible"));
+ memoryToastTimer=setTimeout(()=>toast.classList.remove("visible"),3200);
+}
 function addMessage(role,text,{error=false,actions=true}={}){
  const el=document.createElement("div");el.className="msg "+(role==="user"?"me":"bot")+(error?" error":"");el.textContent=text;
  if(role!=="user"&&actions){
   const bar=document.createElement("div");bar.className="msg-actions";
-  const copy=document.createElement("button");copy.type="button";copy.textContent="Copier";copy.onclick=async()=>{try{await navigator.clipboard.writeText(text);copy.textContent="Copié ✓"}catch{const ta=document.createElement("textarea");ta.value=text;document.body.append(ta);ta.select();document.execCommand("copy");ta.remove();copy.textContent="Copié ✓"}};
+  const copy=document.createElement("button");copy.type="button";copy.textContent="Copier";
+  copy.onclick=async()=>{try{await navigator.clipboard.writeText(text);copy.textContent="Copié"}catch{const ta=document.createElement("textarea");ta.value=text;document.body.append(ta);ta.select();document.execCommand("copy");ta.remove();copy.textContent="Copié"}};
   bar.append(copy);
   if(settings.voice){const readBtn=document.createElement("button");readBtn.type="button";readBtn.textContent="Lire";readBtn.onclick=()=>speak(text);bar.append(readBtn)}
   el.append(bar);
  }
  $("#messages").append(el);$("#messages").scrollTop=$("#messages").scrollHeight;return el;
 }
-function context(){return JSON.stringify({souvenirs:memories.map(m=>({text:m.text,category:m.category})),agenda:agenda.map(a=>({title:a.title,date:a.date}))})}
+function context(){return JSON.stringify({souvenirs:memories.map(m=>({text:m.text,category:m.category})),agenda:agenda.map(a=>({title:a.title,date:a.date})),rappels:reminders.map(r=>r.title)})}
 function addMemory(text,category="autre"){
  text=String(text||"").trim().replace(/\s+/g," ").slice(0,240);if(!text)return false;
  if(memories.some(m=>String(m.text).toLowerCase()===text.toLowerCase()))return false;
- memories.unshift({id:uid(),text,category:String(category||"autre").slice(0,40),createdAt:new Date().toISOString()});memories=memories.slice(0,100);write(keys.mem,memories);renderMemories();return true;
+ memories.unshift({id:uid(),text,category:String(category||"autre").slice(0,40),createdAt:new Date().toISOString()});
+ memories=memories.slice(0,100);write(keys.mem,memories);renderMemories();showMemoryToast(text);return true;
 }
 function renderMemories(){
  const root=$("#memoryGrid");root.replaceChildren();$("#memoryCount").textContent=memories.length+" souvenir(s)";
  if(!memories.length){const p=document.createElement("p");p.className="muted";p.textContent="Aucun souvenir. Ajoute-en un ci-dessus.";root.append(p);return}
- memories.forEach(m=>{const card=document.createElement("article");card.className="gem-card";const gem=document.createElement("div");gem.className="gem";const title=document.createElement("h4");title.textContent=(m.category||"autre").toUpperCase();const text=document.createElement("p");text.textContent=m.text;const actions=document.createElement("div");actions.className="gem-actions";const edit=document.createElement("button");edit.type="button";edit.textContent="Modifier";edit.dataset.edit=m.id;const del=document.createElement("button");del.type="button";del.textContent="Supprimer";del.dataset.delete=m.id;actions.append(edit,del);card.append(gem,title,text,actions);root.append(card)});
+ memories.forEach(m=>{
+  const card=document.createElement("article");card.className="gem-card";
+  const gem=document.createElement("div");gem.className="gem";gem.setAttribute("aria-hidden","true");
+  const title=document.createElement("h4");title.textContent=(m.category||"autre").toUpperCase();
+  const text=document.createElement("p");text.textContent=m.text;
+  const actions=document.createElement("div");actions.className="gem-actions";
+  const edit=document.createElement("button");edit.type="button";edit.textContent="Modifier";edit.dataset.edit=m.id;
+  const del=document.createElement("button");del.type="button";del.textContent="Supprimer";del.dataset.delete=m.id;
+  actions.append(edit,del);card.append(gem,title,text,actions);root.append(card);
+ });
 }
-$("#memoryGrid").addEventListener("click",e=>{const del=e.target.closest("[data-delete]"),edit=e.target.closest("[data-edit]");if(del){memories=memories.filter(m=>m.id!==del.dataset.delete);write(keys.mem,memories);renderMemories();return}if(edit){const m=memories.find(x=>x.id===edit.dataset.edit);if(!m)return;const value=prompt("Modifier le souvenir :",m.text);if(value===null)return;const text=value.trim().slice(0,240);if(!text){alert("Le souvenir ne peut pas être vide.");return}m.text=text;write(keys.mem,memories);renderMemories()}});
-$("#memoryForm").addEventListener("submit",e=>{e.preventDefault();if(addMemory($("#memoryText").value))$("#memoryText").value="";else alert("Ce souvenir est vide ou déjà enregistré.")});
+$("#memoryGrid").addEventListener("click",e=>{
+ const del=e.target.closest("[data-delete]"),edit=e.target.closest("[data-edit]");
+ if(del){memories=memories.filter(m=>m.id!==del.dataset.delete);write(keys.mem,memories);renderMemories();return}
+ if(edit){const m=memories.find(x=>x.id===edit.dataset.edit);if(!m)return;const value=prompt("Modifier le souvenir :",m.text);if(value===null)return;const text=value.trim().slice(0,240);if(!text){alert("Le souvenir ne peut pas être vide.");return}m.text=text;write(keys.mem,memories);renderMemories()}
+});
+$("#memoryForm").addEventListener("submit",e=>{e.preventDefault();const value=$("#memoryText").value;if(addMemory(value))$("#memoryText").value="";else alert("Ce souvenir est vide ou déjà enregistré.")});
 
 async function askNOVA(text){
- const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),90000);
+ const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),65000);
  try{
-  const response=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},signal:controller.signal,body:JSON.stringify({text,fast:$("#fast").checked,device:"iphone-web",memory_context:context(),history:history.slice(-10)})});
+  // Le message courant est transmis dans "text", donc on ne le duplique pas dans l'historique.
+  const priorHistory=history.slice(0,-1).slice(-8);
+  const response=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},signal:controller.signal,body:JSON.stringify({text,fast:$("#fast").checked,device:"iphone-web",memory_context:context(),history:priorHistory})});
   let data={};try{data=await response.json()}catch{}
   if(!response.ok)throw Error(data.detail||data.error||"Erreur serveur HTTP "+response.status);
   if(!data.reply||typeof data.reply!=="string")throw Error("Réponse de NOVA invalide.");
@@ -148,19 +231,23 @@ async function askNOVA(text){
  }catch(e){if(e.name==="AbortError")throw Error("NOVA met trop de temps à répondre. Réessaie dans un instant.");throw e}
  finally{clearTimeout(timeout)}
 }
-function explicitMemory(text){const match=text.match(/^(?:nova[, ]*)?(?:retiens|mémorise|memorise|souviens-toi|n'oublie pas)\s+(?:que\s+)?(.+)$/i);return match?match[1].trim():null}
+function explicitMemory(text){
+ const match=text.match(/^(?:nova[, ]*)?(?:retiens|mémorise|memorise|souviens-toi|n'oublie pas)\s+(?:que\s+)?(.+)$/i);
+ return match?match[1].trim():null;
+}
 async function send(text){
  text=text.trim();if(!text||busy)return;
- busy=true;$("#send").disabled=true;$("#mic").disabled=true;setStatus("NOVA réfléchit…",null);
- addMessage("user",text,{actions:false});history.push({role:"user",content:text});history=history.slice(-12);$("#prompt").value="";
- const typing=document.createElement("div");typing.className="msg bot";typing.innerHTML='<span class="typing" aria-label="NOVA écrit"><i></i><i></i><i></i></span>';$("#messages").append(typing);$("#messages").scrollTop=$("#messages").scrollHeight;
+ busy=true;stopSpeaking();$("#send").disabled=true;$("#mic").disabled=true;setStatus("NOVA réfléchit…",null);
+ addMessage("user",text,{actions:false});history.push({role:"user",content:text});history=history.slice(-10);write(keys.history,history);$("#prompt").value="";
+ const typing=document.createElement("div");typing.className="msg bot";typing.innerHTML='<span class="typing" aria-label="NOVA écrit"><i></i><i></i><i></i></span>';
+ $("#messages").append(typing);$("#messages").scrollTop=$("#messages").scrollHeight;
  try{
-  const result=await askNOVA(text);typing.remove();addMessage("assistant",result.reply);history.push({role:"assistant",content:result.reply});history=history.slice(-12);write(keys.history,history);
-  const explicit=explicitMemory(text);if(explicit&&addMemory(explicit))addMessage("assistant","Souvenir enregistré : "+explicit);
+  const result=await askNOVA(text);typing.remove();
+  addMessage("assistant",result.reply);history.push({role:"assistant",content:result.reply});history=history.slice(-10);write(keys.history,history);
+  const explicit=explicitMemory(text);if(explicit)addMemory(explicit,"préférence");
   for(const update of (Array.isArray(result.memory_updates)?result.memory_updates:[]).slice(0,2)){
    if(!update||typeof update.text!=="string"||!update.text.trim())continue;
-   if(settings.confirmMemory){if(confirm("NOVA propose de retenir :\n\n"+update.text+"\n\nEnregistrer ce souvenir ?")){if(addMemory(update.text,update.category))addMessage("assistant","Souvenir ajouté.")}}
-   else if(addMemory(update.text,update.category))addMessage("assistant","Souvenir ajouté : "+update.text);
+   addMemory(update.text,update.category||"souvenir");
   }
   if(settings.voice)speak(result.reply);setStatus("Connecté",true);
  }catch(err){typing.remove();console.error(err);addMessage("assistant",err.message||"Erreur inconnue",{error:true});setStatus("Connexion à vérifier",false)}
@@ -169,30 +256,61 @@ async function send(text){
 $("#chatForm").addEventListener("submit",e=>{e.preventDefault();send($("#prompt").value)});
 $("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("#chatForm").requestSubmit()}});
 $("#newChat").onclick=()=>{if(busy)return;if(!confirm("Commencer une nouvelle discussion ? L'historique sauvegardé sera effacé."))return;history=[];write(keys.history,history);$("#messages").replaceChildren();addMessage("assistant","Nouvelle discussion prête. Que veux-tu explorer ?",{actions:false})};
-$("#mic").addEventListener("click",()=>{
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert("La dictée vocale n'est pas disponible dans ce navigateur. Essaie Safari ou Chrome récent.");return}
- if(recognition){recognition.stop();recognition=null;$("#mic").textContent="🎙 Dicter";return}
- recognition=new SR();recognition.lang="fr-FR";recognition.interimResults=false;$("#mic").textContent="Arrêter le micro";
- recognition.onresult=e=>{$("#prompt").value+=($("#prompt").value?" ":"")+e.results[0][0].transcript;$("#prompt").focus()};
- recognition.onerror=e=>console.warn("Micro :",e.error);recognition.onend=()=>{recognition=null;$("#mic").textContent="🎙 Dicter"};recognition.start();
+
+const micButton=$("#mic");
+function setMicListening(listening){
+ micButton.classList.toggle("listening",listening);
+ micButton.setAttribute("aria-label",listening?"Arrêter la dictée vocale":"Démarrer la dictée vocale");
+ micButton.title=listening?"Arrêter la dictée":"Dictée vocale";
+ micButton.innerHTML=listening
+ ? '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>'
+ : '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M8.5 21.5h7"></path></svg>';
+}
+micButton.addEventListener("click",()=>{
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){setStatus("Dictée non disponible dans ce navigateur",false);return}
+ if(recognition){recognition.stop();return}
+ recognition=new SR();recognition.lang="fr-FR";recognition.interimResults=true;recognition.continuous=false;
+ setMicListening(true);
+ recognition.onresult=e=>{
+  let finalText="",interimText="";
+  for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)finalText+=e.results[i][0].transcript;else interimText+=e.results[i][0].transcript}
+  if(finalText){const input=$("#prompt");input.value+=(input.value.trim()?" ":"")+finalText.trim();input.focus()}
+  micButton.title=interimText?"Écoute en cours…":"Dictée vocale";
+ };
+ recognition.onerror=e=>{console.warn("Micro :",e.error);if(e.error!=="no-speech")setStatus("Vérifie l'autorisation du micro",false)};
+ recognition.onend=()=>{recognition=null;setMicListening(false)};
+ try{recognition.start()}catch(e){recognition=null;setMicListening(false);console.warn(e)}
 });
-$("#settingsBtn").onclick=()=>$("#settings").showModal();$("[data-close]").onclick=()=>$("#settings").close();
-$("#voice").checked=!!settings.voice;$("#confirmMemory").checked=settings.confirmMemory!==false;
-$("#voice").onchange=e=>{settings.voice=e.target.checked;saveSettings()};$("#confirmMemory").onchange=e=>{settings.confirmMemory=e.target.checked;saveSettings()};
-async function health(){try{const r=await fetch("/api/health");const d=await r.json();if(!r.ok)throw Error();setStatus(d.gemini_configured?"Serveur prêt":"Serveur en ligne · clé Gemini à vérifier",!!d.gemini_configured)}catch{setStatus("Serveur inaccessible",false)}}
-$("#testGemini").onclick=async()=>{const b=$("#testGemini");b.disabled=true;$("#testResult").textContent="Test réel de Gemini en cours…";try{const r=await fetch("/api/test-gemini");const d=await r.json();if(!r.ok)throw Error(d.detail||"Test Gemini échoué");$("#testResult").textContent="✓ "+d.reply+" · Modèle : "+(d.model_configured||"configuré")}catch(e){$("#testResult").textContent="Échec : "+e.message}finally{b.disabled=false}};
+$("#settingsBtn").onclick=()=>$("#settings").showModal();
+$("[data-close]").onclick=()=>$("#settings").close();
+$("#voice").checked=!!settings.voice;
+$("#voiceRate").value=String(settings.voiceRate||.96);
+$("#voiceRateValue").textContent=Number($("#voiceRate").value).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+"×";
+$("#voice").onchange=e=>{settings.voice=e.target.checked;saveSettings()};
+$("#voiceRate").oninput=e=>{$("#voiceRateValue").textContent=Number(e.target.value).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+"×";settings.voiceRate=Number(e.target.value);saveSettings()};
+$("#testVoice").onclick=()=>speak("Bonjour, je suis NOVA. Je suis prête à t'aider. Que souhaites-tu faire aujourd'hui ?");
+async function health(){try{const r=await fetch("/api/health");const d=await r.json();if(!r.ok)throw Error();setStatus(d.gemini_configured?"Serveur prêt":"Serveur en ligne, clé Gemini à vérifier",!!d.gemini_configured)}catch{setStatus("Serveur inaccessible",false)}}
+$("#testGemini").onclick=async()=>{
+ const b=$("#testGemini");b.disabled=true;$("#testResult").textContent="Test de Gemini en cours…";
+ try{const r=await fetch("/api/test-gemini");const d=await r.json();if(!r.ok)throw Error(d.detail||"Test Gemini échoué");$("#testResult").textContent=d.reply+" · Modèle : "+(d.model_configured||"configuré")}
+ catch(e){$("#testResult").textContent="Échec : "+e.message}
+ finally{b.disabled=false}
+};
 async function getWeather(city){
  $("#weatherResult").textContent="Chargement…";
  try{const r=await fetch("/api/weather?city="+encodeURIComponent(city));const d=await r.json();if(!r.ok)throw Error(d.detail||"Météo indisponible");
- $("#weatherResult").textContent=`${d.city} : ${d.temperature??"—"} °C · Ressenti ${d.feels_like??"—"} °C · ${d.description||"Conditions inconnues"} · Humidité ${d.humidity??"—"} % · Vent ${d.wind_kph??"—"} km/h`;
+  $("#weatherResult").textContent=`${d.city} : ${d.temperature??"—"} °C · Ressenti ${d.feels_like??"—"} °C · ${d.description||"Conditions inconnues"} · Humidité ${d.humidity??"—"} % · Vent ${d.wind_kph??"—"} km/h`;
  }catch(e){$("#weatherResult").textContent=e.message}
 }
 $("#weatherForm").addEventListener("submit",e=>{e.preventDefault();getWeather($("#city").value)});
 function renderList(root,items,type){
  root.replaceChildren();if(!items.length){root.textContent="Rien pour le moment.";root.className="muted";return}root.className="";
  items.slice().sort((a,b)=>String(a.date||"").localeCompare(String(b.date||""))).forEach(item=>{
-  const row=document.createElement("div");row.className="list-item";const label=document.createElement("span");label.textContent=item.title+(item.date?" · "+new Date(item.date).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):"");
-  const del=document.createElement("button");del.type="button";del.textContent="Supprimer";del.onclick=()=>{if(type==="agenda"){agenda=agenda.filter(x=>x.id!==item.id);write(keys.agenda,agenda);renderList(root,agenda,"agenda")}else{reminders=reminders.filter(x=>x.id!==item.id);write(keys.rem,reminders);renderList(root,reminders,"reminders")}};
+  const row=document.createElement("div");row.className="list-item";const label=document.createElement("span");
+  label.textContent=item.title+(item.date?" · "+new Date(item.date).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):"");
+  const del=document.createElement("button");del.type="button";del.textContent="Supprimer";
+  del.onclick=()=>{if(type==="agenda"){agenda=agenda.filter(x=>x.id!==item.id);write(keys.agenda,agenda);renderList(root,agenda,"agenda")}else{reminders=reminders.filter(x=>x.id!==item.id);write(keys.rem,reminders);renderList(root,reminders,"reminders")}};
   row.append(label,del);root.append(row);
  });
 }
