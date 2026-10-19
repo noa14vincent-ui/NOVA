@@ -11,7 +11,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
 MODEL = "recraft/recraftv4-1-flash"
-API_URL = "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/" + MODEL
+API_URL = "https://api.cloudflare.com/client/v4/accounts/{}/ai/run"
 TIMEOUT_SECONDS = 90
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 
