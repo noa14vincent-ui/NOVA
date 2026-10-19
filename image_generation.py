@@ -58,11 +58,17 @@ def install_image_routes(app, get_client=None, check_access=None):
         payload = {"model": MODEL, "prompt": prompt}
         try:
             response = requests.post(
-                API_URL.format(account_id),
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                json={"prompt": prompt},
-                timeout=TIMEOUT_SECONDS,
-            )
+    API_URL.format(account_id),
+    headers={
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "model": MODEL,
+        "input": {"prompt": prompt},
+    },
+    timeout=TIMEOUT_SECONDS,
+)
         except requests.RequestException:
             return _error("Impossible de contacter Cloudflare. Réessaie dans un instant.", 502)
 
