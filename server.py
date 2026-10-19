@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
+from image_generation import install_image_routes
 
 import requests
 from fastapi import FastAPI, HTTPException, Query, Request
