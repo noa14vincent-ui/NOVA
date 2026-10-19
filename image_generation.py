@@ -11,7 +11,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
 MODEL = "recraft/recraftv4-1-flash"
-API_URL = "https://api.cloudflare.com/client/v4/accounts/{}/ai/run"
+API_URL = "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/" + MODEL
 TIMEOUT_SECONDS = 90
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 
@@ -60,7 +60,7 @@ def install_image_routes(app, get_client=None, check_access=None):
             response = requests.post(
                 API_URL.format(account_id),
                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                json={"input": {"prompt": prompt}},
+                json={"prompt": prompt},
                 timeout=TIMEOUT_SECONDS,
             )
         except requests.RequestException:
@@ -94,49 +94,3 @@ def install_image_routes(app, get_client=None, check_access=None):
                 errors = data.get("errors") or []
                 msg = "; ".join(str(e.get("message", e)) for e in errors) or "La génération Cloudflare a échoué."
                 return _error(msg[:700], 502)
-
-            result = data.get("result") or {}
-            # Workers AI image models may return an image URL or a base64/data URI.
-            image_value = result.get("image") or result.get("url")
-            if isinstance(image_value, str) and image_value.startswith("data:image/") and "," in image_value:
-                header, encoded = image_value.split(",", 1)
-                mime_type = header[5:].split(";")[0]
-                try:
-                    image_bytes = base64.b64decode(encoded, validate=True)
-                except Exception:
-                    return _error("Cloudflare a renvoyé une image encodée invalide.", 502)
-            elif isinstance(image_value, str) and image_value.startswith("https://"):
-                try:
-                    img_response = requests.get(image_value, timeout=TIMEOUT_SECONDS, stream=True)
-                    img_response.raise_for_status()
-                    mime_type = img_response.headers.get("content-type", "image/png").split(";")[0].lower()
-                    if not mime_type.startswith("image/"):
-                        return _error("L’URL renvoyée par Cloudflare ne contient pas une image.", 502)
-                    chunks = bytearray()
-                    for chunk in img_response.iter_content(64 * 1024):
-                        if chunk:
-                            chunks.extend(chunk)
-                            if len(chunks) > MAX_IMAGE_BYTES:
-                                return _error("L’image générée est trop volumineuse.", 502)
-                    image_bytes = bytes(chunks)
-                except requests.RequestException:
-                    return _error("Impossible de récupérer l’image générée par Cloudflare.", 502)
-                finally:
-                    try:
-                        img_response.close()
-                    except Exception:
-                        pass
-            elif isinstance(result.get("image"), (bytes, bytearray)):
-                image_bytes = bytes(result["image"])
-                mime_type = "image/png"
-
-        if not image_bytes:
-            # Return a clear JSON error instead of null, so the UI can show a useful message.
-            return _error("Cloudflare n’a pas renvoyé d’image exploitable. Vérifie les logs Render et le format de réponse du modèle.", 502)
-        if len(image_bytes) > MAX_IMAGE_BYTES:
-            return _error("L’image générée est trop volumineuse.", 502)
-        if not mime_type or not mime_type.startswith("image/"):
-            mime_type = "image/png"
-        encoded = base64.b64encode(image_bytes).decode("ascii")
-        data_uri = f"data:{mime_type};base64,{encoded}"
-        return JSONResponse(content={"image": data_uri, "mime_type": mime_type, "model": MODEL})
