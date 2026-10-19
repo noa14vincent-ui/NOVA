@@ -942,6 +942,8 @@ def test_gemini(request: Request):
 # Enregistrer les routes de NOVA Agenda, y compris sous Uvicorn
 install_agenda_routes(app)
 
+install_image_routes(app, get_client, check_access)
+
 if __name__ == "__main__":
     import uvicorn
 
