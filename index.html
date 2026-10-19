@@ -93,6 +93,38 @@ body[data-gradient-style="minimal"] .brand-mark,body[data-gradient-style="minima
 .image-generate-button{width:100%;min-height:46px}
 .image-generate-button svg{flex:0 0 auto}
 .image-result-placeholder{min-height:350px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;border:1px dashed var(--line);border-radius:15px;background:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 58%),var(--surface2);color:var(--muted)}
+
+/* NOVA Image Lab — animation de génération pixelisée */
+.image-result-panel .panel-body{position:relative}
+.image-result-placeholder{position:relative;isolation:isolate;overflow:hidden;transition:background .35s ease,border-color .35s ease}
+.image-result-placeholder .nova-build-scene{display:none;position:relative;width:min(100%,440px);height:clamp(145px,25vw,230px);margin:0 auto 8px;overflow:hidden;border-radius:12px;border:1px solid #6ceaff35;background:#071323;box-shadow:inset 0 0 35px #13b8ff16,0 8px 30px #0002}
+.image-result-placeholder.is-generating .nova-build-scene{display:block}
+.nova-build-scene::before,.nova-build-scene::after{content:"";position:absolute;inset:0;pointer-events:none}
+.nova-build-scene::before{opacity:.88;background:radial-gradient(ellipse at 50% 110%,#18d9d080 0,transparent 48%),linear-gradient(180deg,#101c3b 0%,#1b4770 48%,#071b25 100%);transition:filter .4s ease}
+.nova-build-scene[data-scene="forest"]::before{background:radial-gradient(ellipse at 50% 46%,#b4f9d9a8 0,transparent 15%),linear-gradient(180deg,#10223b 0%,#2b6570 48%,#091b20 100%)}
+.nova-build-scene[data-scene="forest"]::after{background:linear-gradient(72deg,transparent 0 22%,#071a1b 22% 29%,transparent 29% 39%,#0a2527 39% 47%,transparent 47%),linear-gradient(108deg,transparent 0 51%,#0a2527 51% 59%,transparent 59% 69%,#061a20 69% 78%,transparent 78%),linear-gradient(0deg,#06181b 0 17%,transparent 17%)}
+.nova-build-scene[data-scene="galaxy"]::before{background:radial-gradient(ellipse at 60% 48%,#ffb7f55c 0,transparent 13%),radial-gradient(ellipse at 50% 50%,#4a50ba 0,transparent 36%),linear-gradient(135deg,#070a20,#171038 58%,#071b34)}
+.nova-build-scene[data-scene="galaxy"]::after{background:radial-gradient(circle at 20% 28%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 24%,#b9f5ff 0 1px,transparent 2px),radial-gradient(circle at 82% 72%,#fff 0 1px,transparent 2px),radial-gradient(circle at 36% 72%,#fff 0 1px,transparent 2px),radial-gradient(ellipse at 50% 52%,transparent 0 20%,#d18aff48 21% 24%,transparent 25%)}
+.nova-build-scene[data-scene="city"]::before{background:linear-gradient(180deg,#111638,#375b85 60%,#071523)}
+.nova-build-scene[data-scene="city"]::after{background:linear-gradient(90deg,transparent 0 5%,#101a34 5% 13%,transparent 13% 16%,#182646 16% 25%,transparent 25% 31%,#0d1c34 31% 41%,transparent 41% 45%,#152341 45% 56%,transparent 56% 61%,#0d1c34 61% 72%,transparent 72% 78%,#182646 78% 88%,transparent 88%),linear-gradient(0deg,#07101e 0 14%,transparent 14%);clip-path:polygon(0 28%,12% 28%,12% 43%,25% 43%,25% 18%,38% 18%,38% 35%,52% 35%,52% 10%,66% 10%,66% 39%,80% 39%,80% 23%,100% 23%,100% 100%,0 100%)}
+.nova-build-scene .nova-pixel-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(18,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));z-index:2;pointer-events:none}
+.nova-build-scene .nova-pixel{background:linear-gradient(135deg,#a5f5ff,#28b8ff 55%,#716bff);border:1px solid #aaf5ff20;opacity:0;transform:scale(.72);box-shadow:0 0 12px #3bd8ff40;animation:novaPixelAssemble 2.05s ease-in-out infinite;animation-delay:var(--pixel-delay)}
+.nova-build-scene .nova-pixel:nth-child(3n){background:linear-gradient(135deg,#d8fbff,#5fe4e0)}
+.nova-build-scene .nova-pixel:nth-child(5n){background:linear-gradient(135deg,#d5c8ff,#7a6bff)}
+.nova-build-scene .nova-scanline{position:absolute;z-index:3;left:-30%;top:-15%;width:28%;height:130%;transform:rotate(24deg);background:linear-gradient(90deg,transparent,#8ff6ff88,transparent);filter:blur(5px);animation:novaScan 2.8s linear infinite;pointer-events:none}
+.nova-build-caption{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);margin:0 auto 3px}
+.nova-build-caption::before{content:"";width:6px;height:6px;border-radius:50%;background:#53e5ff;box-shadow:0 0 10px #53e5ff;animation:novaPulse 1s ease-in-out infinite alternate}
+.image-result-placeholder.is-generating .image-placeholder-icon{display:none}
+.image-result-placeholder.is-generating>span{max-width:320px}
+@keyframes novaPixelAssemble{0%,100%{opacity:.05;transform:scale(.65);filter:brightness(.8)}35%,65%{opacity:.92;transform:scale(1);filter:brightness(1.35)}}
+@keyframes novaScan{0%{left:-35%;opacity:0}15%{opacity:.9}85%{opacity:.7}100%{left:115%;opacity:0}}
+@keyframes novaPulse{from{opacity:.35;transform:scale(.8)}to{opacity:1;transform:scale(1.2)}}
+.image-result-placeholder.is-revealing .nova-build-scene{animation:novaSceneReveal .8s cubic-bezier(.2,.8,.2,1) both}
+.generated-image-figure.nova-image-final-reveal img{animation:novaImageFinalReveal .72s cubic-bezier(.2,.8,.2,1) both}
+@keyframes novaImageFinalReveal{0%{clip-path:inset(0 100% 100% 0);filter:brightness(1.8) saturate(.6);transform:scale(.985)}65%{clip-path:inset(0);filter:brightness(1.18) saturate(1.1);transform:scale(1)}100%{clip-path:inset(0);filter:none;transform:scale(1)}}
+@keyframes novaSceneReveal{0%{clip-path:inset(0 100% 100% 0);filter:brightness(1.8) saturate(.5)}70%{clip-path:inset(0 0 0 0);filter:brightness(1.25) saturate(1.2)}100%{clip-path:inset(0);filter:none}}
+@media(prefers-reduced-motion:reduce){.nova-build-scene .nova-pixel,.nova-build-scene .nova-scanline,.nova-build-caption::before,.image-result-placeholder.is-revealing .nova-build-scene{animation:none!important}.nova-build-scene .nova-pixel{opacity:.22;transform:none}}
+
 .image-result-placeholder strong{font-size:14px;color:var(--text)}
 .image-result-placeholder>span{font-size:12px;max-width:260px;line-height:1.55}
 .image-placeholder-icon{width:68px;height:68px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));border-radius:20px;background:color-mix(in srgb,var(--accent) 9%,var(--surface));color:var(--accent2);margin-bottom:5px}
@@ -142,7 +174,7 @@ body[data-gradient-style="minimal"] .brand-mark,body[data-gradient-style="minima
         <button type="submit" class="primary image-generate-button" id="generateImageBtn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 1.8 4 13.2h6l-1 9 11-13.6h-6.4l-.1-6.8Z"/></svg><span>Générer l’image</span></button><p class="help-text" id="imageStatus" role="status" aria-live="polite">La génération peut prendre plusieurs dizaines de secondes. Les limites et filtres de sécurité du fournisseur d’images s’appliquent.</p>
         </form></div>
       </section>
-      <section class="panel image-result-panel"><div class="panel-head"><div><h3>Résultat</h3><div class="small muted" id="imageResultMeta">Ton image apparaîtra ici.</div></div><button type="button" class="secondary" id="clearImageResult">Effacer</button></div><div class="panel-body"><div class="image-result-placeholder" id="imageResultPlaceholder"><div class="image-placeholder-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="7" width="38" height="34" rx="5"/><circle cx="16" cy="18" r="3.5"/><path d="m7 35 12-12 7 7 6-8 9 10"/><path d="m35 3-.9 2.5-2.5.9 2.5.9L35 10l.9-2.7 2.5-.9-2.5-.9L35 3Z"/></svg></div><strong>Prêt à donner vie à tes idées</strong><span>Le résultat sera affiché ici. Tu pourras le télécharger sur ton appareil.</span></div><figure id="generatedImageFigure" class="generated-image-figure" hidden><img id="generatedImage" alt="Image générée par NOVA" loading="eager"><figcaption id="generatedImageCaption"></figcaption></figure><div class="image-result-actions" id="imageResultActions" hidden><button type="button" class="primary" id="downloadGeneratedImage">Télécharger l’image</button><button type="button" class="secondary" id="reuseImagePrompt">Réutiliser le prompt</button></div></div></section>
+      <section class="panel image-result-panel"><div class="panel-head"><div><h3>Résultat</h3><div class="small muted" id="imageResultMeta">Ton image apparaîtra ici.</div></div><button type="button" class="secondary" id="clearImageResult">Effacer</button></div><div class="panel-body"><div class="image-result-placeholder" id="imageResultPlaceholder"><div class="nova-build-scene" id="novaBuildScene" data-scene="forest" aria-hidden="true"><div class="nova-pixel-grid" id="novaPixelGrid"></div><div class="nova-scanline"></div></div><div class="nova-build-caption" id="novaBuildCaption" hidden>Assemblage des pixels</div><div class="image-placeholder-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="7" width="38" height="34" rx="5"/><circle cx="16" cy="18" r="3.5"/><path d="m7 35 12-12 7 7 6-8 9 10"/><path d="m35 3-.9 2.5-2.5.9 2.5.9L35 10l.9-2.7 2.5-.9-2.5-.9L35 3Z"/></svg></div><strong>Prêt à donner vie à tes idées</strong><span>Le résultat sera affiché ici. Tu pourras le télécharger sur ton appareil.</span></div><figure id="generatedImageFigure" class="generated-image-figure" hidden><img id="generatedImage" alt="Image générée par NOVA" loading="eager"><figcaption id="generatedImageCaption"></figcaption></figure><div class="image-result-actions" id="imageResultActions" hidden><button type="button" class="primary" id="downloadGeneratedImage">Télécharger l’image</button><button type="button" class="secondary" id="reuseImagePrompt">Réutiliser le prompt</button></div></div></section>
     </div>
     <div class="notice image-privacy-note"><strong>Confidentialité et sécurité.</strong> Les prompts sont envoyés au serveur NOVA puis au fournisseur de génération d’images. N’y inclus pas de mots de passe, d’informations privées ou d’images de personnes sans autorisation. La protection des coûts est limitée par des quotas côté serveur ; pour un service public vendu, relie la génération à de vrais comptes utilisateurs.</div>
   </section>
@@ -315,15 +347,73 @@ $("#clearData").addEventListener("click",()=>{if(!confirm("Effacer la mémoire, 
 
 // Génération d'images : l'appel et la clé du fournisseur restent côté serveur.
 let lastGeneratedImage=null;
+let novaSceneTimer=null;
+const novaScenes=[
+ {id:"forest",label:"Émergence d’une forêt"},
+ {id:"galaxy",label:"Cartographie d’une galaxie"},
+ {id:"city",label:"Construction d’une ville"}
+];
+function initNovaPixelGrid(){
+ const grid=$("#novaPixelGrid");if(!grid||grid.childElementCount)return;
+ const fragment=document.createDocumentFragment();
+ for(let row=0;row<9;row++)for(let col=0;col<18;col++){
+  const pixel=document.createElement("i");pixel.className="nova-pixel";
+  // Délai diagonal : du coin supérieur gauche vers le coin inférieur droit.
+  pixel.style.setProperty("--pixel-delay",`${(row+col)*0.055+(Math.random()*0.08)}s`);
+  fragment.appendChild(pixel);
+ }
+ grid.appendChild(fragment);
+}
+function stopNovaBuildAnimation(){
+ if(novaSceneTimer){clearInterval(novaSceneTimer);novaSceneTimer=null;}
+ const placeholder=$("#imageResultPlaceholder");
+ placeholder.classList.remove("is-generating","is-revealing");
+ $("#novaBuildCaption").hidden=true;
+}
+function startNovaBuildAnimation(){
+ stopNovaBuildAnimation();initNovaPixelGrid();
+ const placeholder=$("#imageResultPlaceholder"),scene=$("#novaBuildScene"),caption=$("#novaBuildCaption");
+ placeholder.classList.add("is-generating");caption.hidden=false;
+ let index=0;scene.dataset.scene=novaScenes[index].id;caption.textContent=novaScenes[index].label;
+ novaSceneTimer=setInterval(()=>{
+  index=(index+1)%novaScenes.length;
+  scene.dataset.scene=novaScenes[index].id;caption.textContent=novaScenes[index].label;
+ },3200);
+}
+function showImagePlaceholder(message="Ton image apparaîtra ici après la génération."){
+ stopNovaBuildAnimation();
+ $("#generatedImageFigure").hidden=true;$("#imageResultActions").hidden=true;$("#imageResultPlaceholder").hidden=false;
+ $("#imageResultPlaceholder").querySelector("strong").textContent="Prêt à donner vie à tes idées";
+ $("#imageResultPlaceholder").querySelector("span").textContent=message;lastGeneratedImage=null;
+}
 $$("[data-image-prompt]").forEach(button=>button.addEventListener("click",()=>{$("#imagePrompt").value=button.dataset.imagePrompt;$("#imagePrompt").focus();}));
-function showImagePlaceholder(message="Ton image apparaîtra ici après la génération."){$("#generatedImageFigure").hidden=true;$("#imageResultActions").hidden=true;$("#imageResultPlaceholder").hidden=false;$("#imageResultPlaceholder").querySelector("strong").textContent="Prêt à donner vie à tes idées";$("#imageResultPlaceholder").querySelector("span").textContent=message;lastGeneratedImage=null;}
 $("#imageForm").addEventListener("submit",async e=>{
- e.preventDefault();const prompt=$("#imagePrompt").value.trim();if(prompt.length<4){toast("Décris un peu plus l’image à créer.");return}
- const button=$("#generateImageBtn"),label=button.querySelector("span"),status=$("#imageStatus");button.disabled=true;label.textContent="Génération en cours…";status.textContent="NOVA prépare l’image. Cela peut prendre un moment.";$("#imageResultPlaceholder").hidden=false;$("#imageResultPlaceholder").querySelector("strong").textContent="Création en cours";$("#imageResultPlaceholder").querySelector("span").textContent="Garde cette page ouverte pendant la génération.";$("#generatedImageFigure").hidden=true;$("#imageResultActions").hidden=true;
+ e.preventDefault();const prompt=$("#imagePrompt").value.trim();if(prompt.length<4){toast("Décris un peu plus l’image à créer.");return;}
+ const button=$("#generateImageBtn"),label=button.querySelector("span"),status=$("#imageStatus");
+ button.disabled=true;label.textContent="Création en cours…";status.textContent="NOVA assemble la scène pixel par pixel. Cela peut prendre un moment.";
+ $("#imageResultPlaceholder").hidden=false;$("#imageResultPlaceholder").querySelector("strong").textContent="NOVA construit ton image";
+ $("#imageResultPlaceholder").querySelector("span").textContent="Les pixels progressent en diagonale pendant que le moteur crée l’image.";
+ $("#generatedImageFigure").hidden=true;$("#imageResultActions").hidden=true;startNovaBuildAnimation();
  try{
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),150000);let result;try{result=await apiFetch("/api/images/generate",{method:"POST",signal:controller.signal,body:JSON.stringify({prompt,style:$("#imageStyle").value,aspect_ratio:$("#imageAspect").value})})}finally{clearTimeout(timer)}
-  const mime=["image/jpeg","image/png","image/webp"].includes(result.mime_type)?result.mime_type:"image/jpeg";const encoded=result.image_base64||result.image;if(typeof encoded!=="string"||!encoded.length||encoded.length>14000000)throw new Error("La réponse image est vide ou trop volumineuse.");const src=encoded.startsWith("data:image/")?encoded:`data:${mime};base64,${encoded}`;const img=$("#generatedImage");img.src=src;img.alt=prompt.slice(0,250);img.onload=()=>{};$("#generatedImageCaption").textContent=prompt;$("#generatedImageFigure").hidden=false;$("#imageResultPlaceholder").hidden=true;$("#imageResultActions").hidden=false;$("#imageResultMeta").textContent=`Créée par ${result.model||"NOVA Image"} · ${$("#imageAspect").value}`;$("#imageStatus").textContent="Image créée. Tu peux la télécharger ou réutiliser le prompt.";lastGeneratedImage={src,mime,prompt};toast("Image créée avec succès.");
- }catch(err){const message=err.name==="AbortError"?"La génération dépasse le délai prévu. Réessaie avec une description plus courte.":err.message||"La génération a échoué.";status.textContent=message;$("#imageResultPlaceholder").hidden=false;$("#imageResultPlaceholder").querySelector("strong").textContent="Génération indisponible";$("#imageResultPlaceholder").querySelector("span").textContent=message;$("#generatedImageFigure").hidden=true;$("#imageResultActions").hidden=true;toast(message)}finally{button.disabled=false;label.textContent="Générer l’image"}
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),150000);let result;
+  try{result=await apiFetch("/api/images/generate",{method:"POST",signal:controller.signal,body:JSON.stringify({prompt,style:$("#imageStyle").value,aspect_ratio:$("#imageAspect").value})});}finally{clearTimeout(timer);}
+  const mime=["image/jpeg","image/png","image/webp"].includes(result.mime_type)?result.mime_type:"image/jpeg";
+  const encoded=result.image_base64||result.image;if(typeof encoded!=="string"||!encoded.length||encoded.length>14000000)throw new Error("La réponse image est vide ou trop volumineuse.");
+  const src=encoded.startsWith("data:image/")?encoded:`data:${mime};base64,${encoded}`;const img=$("#generatedImage");
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error("L’image reçue n’a pas pu être affichée."));img.src=src;});
+  stopNovaBuildAnimation();
+  // Révélation diagonale de l’image finale après réception complète.
+  const placeholder=$("#imageResultPlaceholder"),figure=$("#generatedImageFigure");
+  img.alt=prompt.slice(0,250);$("#generatedImageCaption").textContent=prompt;figure.classList.remove("nova-image-final-reveal");
+  figure.hidden=false;void img.offsetWidth;figure.classList.add("nova-image-final-reveal");placeholder.hidden=true;$("#imageResultActions").hidden=false;
+  setTimeout(()=>figure.classList.remove("nova-image-final-reveal"),800);
+  $("#imageResultMeta").textContent=`Créée par ${result.model||"NOVA Image"} · ${$("#imageAspect").value}`;
+  status.textContent="Image créée. Tu peux la télécharger ou réutiliser le prompt.";lastGeneratedImage={src,mime,prompt};toast("Image créée avec succès.");
+ }catch(err){
+  stopNovaBuildAnimation();const message=err.name==="AbortError"?"La génération dépasse le délai prévu. Réessaie avec une description plus courte.":err.message||"La génération a échoué.";
+  status.textContent=message;$("#imageResultPlaceholder").hidden=false;$("#imageResultPlaceholder").querySelector("strong").textContent="Génération indisponible";
+  $("#imageResultPlaceholder").querySelector("span").textContent=message;$("#generatedImageFigure").hidden=true;$("#imageResultActions").hidden=true;toast(message);
+ }finally{stopNovaBuildAnimation();button.disabled=false;label.textContent="Générer l’image";}
 });
 $("#downloadGeneratedImage").addEventListener("click",()=>{if(!lastGeneratedImage)return;const a=document.createElement("a");a.href=lastGeneratedImage.src;a.download=`nova-image-${new Date().toISOString().slice(0,10)}.${lastGeneratedImage.mime.includes("png")?"png":lastGeneratedImage.mime.includes("webp")?"webp":"jpg"}`;document.body.append(a);a.click();a.remove()});
 $("#reuseImagePrompt").addEventListener("click",()=>{if(lastGeneratedImage){$("#imagePrompt").value=lastGeneratedImage.prompt;$("#imagePrompt").focus();toast("Prompt repris dans le formulaire.")}});
