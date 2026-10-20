@@ -383,7 +383,10 @@ async function handleAgendaIntent(text){
   const createVerb=/\b(ajoute|ajouter|rajoute|rajouter|mets|mettre|place|placer|inscris|inscrire|note|noter|planifie|planifier|programme|programmer|cree|creer|bloque|bloquer|reserve|reserver|prevois|prevoir|enregistre|enregistrer|ajout(e|er) moi|peux tu me mettre|peux tu ajouter|tu peux me mettre|tu peux ajouter|j aimerais ajouter|je veux ajouter)\b/.test(n);
   const dateMention=agendaHasDate(n);
   const timeMention=/\b\d{1,2}\s*h(?:\s*\d{1,2})?\b|\b(?:a|vers|pour)\s+\d{1,2}\b|\b\d{1,2}\s*(?:heure|heures)\b/.test(n);
-  const addIntent=createVerb && (eventWord||dateMention||timeMention);
+  const inferredCreate=/\b(rdv|rendez vous|rendez-vous|rappel|evenement|reunion|dentiste|medecin|docteur|appel|dejeuner|diner|cours|examen|anniversaire)\b/.test(n)
+    && dateMention && timeMention
+    && !/\b(quels? sont|mes rendez vous|mes rdv|mes evenements|liste|affiche|montre|organise|organiser|annule|supprime|deplace|quand|a quelle heure)\b/.test(n);
+  const addIntent=(createVerb && (eventWord||dateMention||timeMention)) || inferredCreate;
   const listIntent=(eventWord||/\b(mes taches|ce que j ai a faire|qu est ce que j ai|que dois je faire|organise ma journee)\b/.test(n))
     && /\b(qu est ce que j ai|que dois je faire|mes rendez vous|mes rdv|mes evenements|mon agenda|ma journee|organise|organiser|planning|quels? sont|liste|affiche|montre|donne|rappelle|mes taches|taches|tache|ce que j ai a faire|qu est ce que j ai|quoi de prevu|j ai quoi)\b/.test(n);
   if(!addIntent&&!listIntent)return null;
@@ -392,8 +395,9 @@ async function handleAgendaIntent(text){
     const r=await fetch(url,{credentials:"same-origin",...options,headers});
     let data={};try{data=await r.json()}catch{}
     if(!r.ok){
-      if(r.status===401||r.status===403)throw new Error("Je n'ai pas accès à ton compte Agenda. Connecte-toi à l'Agenda avec ton compte, puis réessaie.");
-      throw new Error(data.detail||data.message||"Le serveur Agenda a refusé la demande. Réessaie dans un instant.");
+      const err=new Error((r.status===401||r.status===403)?"Le compte Agenda n'est pas connecté à cette session.":(data.detail||data.message||"Le serveur Agenda a refusé la demande. Réessaie dans un instant."));
+      err.status=r.status;
+      throw err;
     }
     return data;
   };
@@ -411,6 +415,7 @@ async function handleAgendaIntent(text){
     }
     let title=text.replace(/[.!?]+$/g,"").trim();
     title=title.replace(/^(nova[, ]*)?(est ce que tu peux|peux tu|tu peux|j aimerais|je voudrais|je veux|il faut|s il te plait|stp)?\s*/i,"");
+    title=title.replace(/^(mets|mettez)[- ]moi[- ]*/i,"");
     title=title.replace(/^(ajoute|ajouter|rajoute|rajouter|cree|creer|planifie|planifier|programme|programmer|inscris|inscrire|mets|mettre|note|noter|bloque|bloquer|reserve|reserver|prevois|prevoir|enregistre|enregistrer)\s+(moi\s+)?/i,"");
     title=title.replace(/\b(dans|sur|a|à)\s+(?:(?:mon|ma)\s+)?(agenda|calendrier)\b/ig," ");
     title=title.replace(/\b(aujourd hui|ce soir|cette apres midi|demain|apres demain|le\s+\d{1,2}[/.]\d{1,2}(?:[/.]\d{2,4})?|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|prochain|prochaine|qui vient)\b/ig," ");
@@ -418,28 +423,62 @@ async function handleAgendaIntent(text){
     title=title.replace(/\b(?:a|vers|pour)\s*\d{1,2}\s*(?:h\s*\d{0,2}|heure(?:s)?)?\b/ig," ");
     title=title.replace(/\b\d{1,2}\s*h(?:\s*\d{1,2})?\b/ig," ").replace(/\b\d{1,2}\s*(?:heure|heures)\b/ig," ");
     title=title.replace(/\b(mon|ma|mes|dans|sur|pour|à|a|le|la|les|un|une|des|du|de|au|aux|stp|svp)\b/ig," ").replace(/\s+/g," ").replace(/^[,;: -]+|[,;: -]+$/g,"").trim();
+    title=title.replace(/\s+(?:à|a|de|du|des|le|la|les|pour|dans|sur|et|vers)\s*$/i,"").trim();
     if(!title)title="Rendez-vous";
     const start=new Date(parsed.date),end=new Date(start.getTime()+(allDay?24:1)*60*60*1000);
     if(allDay){start.setHours(0,0,0,0);end.setTime(start.getTime()+24*60*60*1000)}
     const health=/medecin|docteur|sante|dentiste|hopital|pharmacie/.test(n);
     const payload={title:title.slice(0,160),start_at:start.toISOString(),end_at:end.toISOString(),description:"Ajouté depuis NOVA.",location:"",category:health?"health":"personal",color:health?"#f17fae":"#9b8cff",all_day:allDay,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Paris"};
-    const data=await request("/api/agenda/events",{method:"POST",body:JSON.stringify(payload)});
+    let data, localOnly=false;
+    try{
+      data=await request("/api/agenda/events",{method:"POST",body:JSON.stringify(payload)});
+    }catch(err){
+      // Sans session Agenda, le calendrier conserve ses événements locaux dans
+      // cette même origine. On écrit dans sa clé officielle au lieu de dire « c'est fait » sans agir.
+      if(err.status!==401)throw err;
+      const key="novaAgendaCloudCacheV1";
+      let localEvents=[];
+      try{localEvents=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(localEvents))localEvents=[]}catch{localEvents=[]}
+      const localEvent={id:"nova-"+Date.now()+"-"+Math.random().toString(16).slice(2),...payload,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+      localEvents.push(localEvent);
+      try{localStorage.setItem(key,JSON.stringify(localEvents))}catch{throw new Error("Je n'ai pas pu enregistrer le rendez-vous dans le stockage local. Vérifie l'espace disponible sur ton appareil.")}
+      data={event:localEvent};localOnly=true;
+    }
     const saved=data.event;
     if(!saved)throw new Error("Le serveur n'a pas confirmé l'enregistrement du rendez-vous. Vérifie ton Agenda avant de réessayer.");
+    if(!localOnly){
+      // Met à jour le cache partagé pour que l'Agenda déjà ouvert puisse se rafraîchir.
+      try{
+        const key="novaAgendaCloudCacheV1";
+        const cache=JSON.parse(localStorage.getItem(key)||"[]");
+        const list=Array.isArray(cache)?cache:[];
+        const pos=list.findIndex(e=>e.id===saved.id);
+        if(pos>=0)list[pos]=saved;else list.push(saved);
+        localStorage.setItem(key,JSON.stringify(list));
+      }catch(e){console.warn("Cache Agenda non actualisé",e)}
+    }
     safeWrite(pendingKey,null);
     const when=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",...(allDay?{}:{hour:"2-digit",minute:"2-digit"})}).format(new Date(saved.start_at||payload.start_at));
-    return `C'est enregistré dans ton Agenda : **${saved.title||payload.title}**, ${when}${allDay?" (toute la journée)":". Durée : 1 heure."}`;
+    return `${localOnly?"C'est enregistré dans l'Agenda sur cet appareil":"C'est enregistré dans ton Agenda"} : **${saved.title||payload.title}**, ${when}${allDay?" (toute la journée)":". Durée : 1 heure."}${localOnly?"\n\n*Attention : cet événement est enregistré localement sur cet appareil. Connecte-toi à ton compte Agenda pour le synchroniser entre appareils.*":""}`;
   }
   const parsed=agendaLocalDate(text),dayStart=parsed?.date||new Date();
   dayStart.setHours(0,0,0,0);
   const dayEnd=new Date(dayStart);dayEnd.setDate(dayEnd.getDate()+1);
-  const data=await request("/api/agenda/events?start="+encodeURIComponent(dayStart.toISOString())+"&end="+encodeURIComponent(dayEnd.toISOString()));
+  let data,localOnly=false;
+  try{
+    data=await request("/api/agenda/events?start="+encodeURIComponent(dayStart.toISOString())+"&end="+encodeURIComponent(dayEnd.toISOString()));
+  }catch(err){
+    if(err.status!==401)throw err;
+    let cache=[];try{cache=JSON.parse(localStorage.getItem("novaAgendaCloudCacheV1")||"[]");if(!Array.isArray(cache))cache=[]}catch{cache=[]}
+    data={events:cache.filter(e=>{const st=new Date(e.start_at||e.start),en=new Date(e.end_at||e.end);return !Number.isNaN(st.getTime())&&!Number.isNaN(en.getTime())&&en>=dayStart&&st<dayEnd})};
+    localOnly=true;
+  }
   let events=Array.isArray(data.events)?data.events:[];
   const range=agendaTimeRange(text);
   if(range)events=events.filter(e=>{const d=new Date(e.start_at);const h=d.getHours()+d.getMinutes()/60;return h>=range.start&&h<range.end});
   if(!events.length){
     const day=dayStart.toLocaleDateString("fr-FR");
-    return range?`Je n'ai trouvé aucun événement enregistré entre **${range.start} h et ${range.end} h** le ${day}. Je n'invente pas de rendez-vous : si tu veux, donne-moi un événement à ajouter et je l'enregistrerai.`:`Ton Agenda est vide pour le ${day}. Tu peux me dire naturellement ce que tu veux ajouter, par exemple : « Mets dentiste jeudi à 15 h ».`;
+    return range?`Je n'ai trouvé aucun événement enregistré entre **${range.start} h et ${range.end} h** le ${day}${localOnly?" dans l'agenda local de cet appareil":""}. Je n'invente pas de rendez-vous : donne-moi simplement ce que tu veux ajouter et je l'enregistrerai.`:`Ton Agenda est vide pour le ${day}${localOnly?" sur cet appareil":""}. Tu peux me dire naturellement ce que tu veux ajouter, par exemple : « Mets dentiste jeudi à 15 h ».`;
   }
   events.sort((a,b)=>new Date(a.start_at)-new Date(b.start_at));
   const rows=events.map(e=>{const d=new Date(e.start_at),end=new Date(e.end_at);return `| ${d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}–${end.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})} | ${String(e.title||"Rendez-vous").replace(/\|/g,"/")} | ${String(e.location||e.description||"—").replace(/\|/g,"/")} |`});
