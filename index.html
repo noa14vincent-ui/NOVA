@@ -312,77 +312,37 @@ function processMemoryUpdates(result){let changed=false;const forget=Array.isArr
 // sont traitées ici. Les autres messages continuent vers Gemini comme avant.
 function agendaNorm(value){return normalize(value).replace(/[’'–-]/g," ").replace(/\s+/g," ").trim()}
 function agendaLocalDate(text){
-  const now=new Date(), t=agendaNorm(text);
-  let d=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12,0,0,0);
-  if(/\b(apres demain|après demain)\b/.test(t)) d.setDate(d.getDate()+2);
-  else if(/\b(demain)\b/.test(t)) d.setDate(d.getDate()+1);
-  else if(/\b(aujourd hui|aujourd'hui|ce jour)\b/.test(t)) {}
-  else {
-    const m=t.match(/\b(?:le )?(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{4}))?\b/);
-    if(m){d=new Date(Number(m[3]||now.getFullYear()),Number(m[2])-1,Number(m[1]),12,0,0,0);if(!m[3]&&d<now)d.setFullYear(d.getFullYear()+1);}
-    else {
-      const weekdays=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
-      const found=weekdays.findIndex((w,i)=>i>0&&new RegExp("\\b"+w+"\\b").test(t));
-      if(found>=0){let delta=(found-now.getDay()+7)%7;if(delta===0||/\b(prochain|prochaine)\b/.test(t))delta+=7;d.setDate(d.getDate()+delta);}
-      else return null;
-    }
-  }
-  const tm=t.match(/\b(?:à|vers|pour)?\s*(\d{1,2})\s*(?:h|:)\s*(\d{2})?\b/)||t.match(/\b(?:à|vers|pour)\s+(\d{1,2})\b/);
-  if(!tm)return {date:d,time:null};
-  const hour=Number(tm[1]),minute=Number(tm[2]||0);
-  if(hour>23||minute>59)return {date:d,time:null};
-  d.setHours(hour,minute,0,0);
-  return {date:d,time:{hour,minute}};
+  const now=new Date(),t=agendaNorm(text);let d=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12,0,0,0);
+  if(/\b(apres demain)\b/.test(t))d.setDate(d.getDate()+2);
+  else if(/\b(demain)\b/.test(t))d.setDate(d.getDate()+1);
+  else if(/\b(aujourd hui|ce jour|aujourd hui meme)\b/.test(t)){}
+  else {const m=t.match(/\b(?:le )?(\d{1,2})[/.](\d{1,2})(?:[/.](\d{4}))?\b/);if(m){d=new Date(Number(m[3]||now.getFullYear()),Number(m[2])-1,Number(m[1]),12,0,0,0);if(!m[3]&&d<now)d.setFullYear(d.getFullYear()+1)}else{const weekdays=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];const found=weekdays.findIndex((w,i)=>i>0&&new RegExp("\\b"+w+"\\b").test(t));if(found>=0){let delta=(found-now.getDay()+7)%7;if(delta===0||/\b(prochain|prochaine)\b/.test(t))delta+=7;d.setDate(d.getDate()+delta)}else if(!/\b(aujourd hui|aujourd hui|ce jour|ma journee|mes rendez vous|mes rdv|mon agenda|mon planning|planning|agenda|calendrier|organise|organiser|que dois je faire|qu est ce que j ai)\b/.test(t))return null}}
+  const tm=t.match(/\b(?:a|vers|pour)\s*(\d{1,2})\s*(?:h|heure(?:s)?)?\s*(\d{2})?\b/)||t.match(/\b(\d{1,2})\s*h(?:\s*(\d{2}))?\b/);
+  if(!tm)return {date:d,time:null};const hour=Number(tm[1]),minute=Number(tm[2]||0);if(hour>23||minute>59)return {date:d,time:null};d.setHours(hour,minute,0,0);return {date:d,time:{hour,minute}};
 }
+function agendaTimeRange(text){const t=agendaNorm(text);let m=t.match(/\b(?:de|entre)\s*(\d{1,2})\s*(?:h|heure(?:s)?)?\s*(?:a|et|jusqu a|jusque)?\s*(\d{1,2})\s*(?:h|heure(?:s)?)?\b/);if(!m)m=t.match(/\b(\d{1,2})\s*(?:h|heure(?:s)?)?\s*(?:a|jusqu a|jusque|-)\s*(\d{1,2})\s*(?:h|heure(?:s)?)?\b/);if(!m)return null;const a=Number(m[1]),b=Number(m[2]);return a<=23&&b<=24&&b>a?{start:a,end:b}:null}
 async function handleAgendaIntent(text){
-  const n=agendaNorm(text);
-  const addIntent=/\b(ajoute|ajouter|cree|crée|planifie|programme|inscris|mets)\b/.test(n)&&/\b(agenda|calendrier|rdv|rendez vous|evenement|evenements)\b/.test(n);
-  const listIntent=/\b(qu est ce que j ai|que dois je faire|mes rendez vous|mes evenements|mon agenda|ma journee|ma journée|organise ma journee|organise ma journée|planning d aujourd hui|planning de demain)\b/.test(n);
+  const n=agendaNorm(text),hasAgenda=/\b(agenda|calendrier|rendez vous|rdv|evenement|evenements|planning|journee)\b/.test(n);
+  const addIntent=/\b(ajoute|ajouter|cree|creer|planifie|program(me|mer)|inscris|mets|bloque|reserve|reser ve)\b/.test(n)&&(/\b(agenda|calendrier|rendez vous|rdv|evenement|evenements)\b/.test(n)||/\b(demain|aujourd hui|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/.test(n));
+  const listIntent=hasAgenda&&(/\b(qu est ce que j ai|que dois je faire|mes rendez vous|mes rdv|mes evenements|mon agenda|ma journee|organise|organiser|planning|quels? sont|liste|affiche|montre|donne|rappelle|rendez vous|rdv|evenements)\b/.test(n));
   if(!addIntent&&!listIntent)return null;
-  const request=async(url,options={})=>{
-    const r=await fetch(url,{credentials:"same-origin",headers:{"Content-Type":"application/json",...(options.headers||{})},...options});
-    let data={};try{data=await r.json()}catch{}
-    if(!r.ok){if(r.status===401)throw new Error("Connecte-toi d’abord à ton compte dans le menu Agenda, puis réessaie.");throw new Error(data.detail||"Impossible d’accéder à l’agenda.");}
-    return data;
-  };
+  const request=async(url,options={})=>{const headers={...(typeof authHeaders==="function"?authHeaders(options.body!==undefined):{}),"Content-Type":"application/json",...(options.headers||{})};const r=await fetch(url,{credentials:"same-origin",...options,headers});let data={};try{data=await r.json()}catch{}if(!r.ok){if(r.status===401)throw new Error("Je n'arrive pas à accéder à ton agenda : connecte-toi dans l'Agenda avec le même compte que NOVA, puis réessaie.");throw new Error(data.detail||"Impossible d’accéder à l’agenda.")}return data};
   if(addIntent){
-    const parsed=agendaLocalDate(text);
-    if(!parsed||!parsed.time)return "Je peux l’ajouter, mais il me faut une date et une heure précises. Exemple : « Ajoute dans l’agenda rendez-vous médecin demain à 18 h ».";
-    let title=text.replace(/[.!?]+$/,"").trim();
-    title=title.replace(/^(nova[, ]*)?(ajoute|ajouter|cree|crée|planifie|programme|inscris|mets)\s+(moi\s+)?/i,"");
-    title=title.replace(/\b(dans|sur)\s+(?:(?:mon|ma)\s+|l.?\s*)?(agenda|calendrier)\b/i,"");
-    title=title.replace(/\b(aujourd'hui|aujourd hui|demain|après-demain|apres demain|le\s+\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{4})?|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|prochain|prochaine)\b/ig,"");
-    title=title.replace(/\b(?:à|vers|pour)\s*\d{1,2}\s*(?:h|:)\s*\d{0,2}\b/ig,"").replace(/\b\d{1,2}\s*h(?:\s*\d{1,2})?\b/ig,"").replace(/\b(rdv|rendez-vous)\b/i,"rendez-vous").replace(/\s+/g," ").trim();
-    if(!title)title="Rendez-vous";
-    const start=new Date(parsed.date);const end=new Date(start.getTime()+60*60*1000);
-    const payload={title:title.slice(0,160),start_at:start.toISOString(),end_at:end.toISOString(),description:"Ajouté depuis NOVA.",location:"",category:/medecin|médecin|docteur|sante|santé/.test(n)?"health":"personal",color:/medecin|médecin|docteur|sante|santé/.test(n)?"#f17fae":"#9b8cff",all_day:false,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Paris"};
-    const data=await request("/api/agenda/events",{method:"POST",body:JSON.stringify(payload)});
-    const when=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"}).format(start);
-    return `C’est ajouté à ton agenda : **${data.event?.title||payload.title}**, ${when}. Durée prévue : 1 heure.`;
+    const parsed=agendaLocalDate(text);if(!parsed||!parsed.time)return "Je peux créer le rendez-vous directement pour toi. Il me manque simplement une date et une heure précises. Exemple : « Ajoute un rendez-vous médecin demain à 18 h ».";
+    let title=text.replace(/[.!?]+$/g,"").trim().replace(/^(nova[, ]*)?(ajoute|ajouter|cree|creer|planifie|programme|programmer|inscris|mets|bloque|reserve)\s+(moi\s+)?/i,"");
+    title=title.replace(/\b(dans|sur)\s+(?:(?:mon|ma)\s+|l.?\s*)?(agenda|calendrier)\b/ig,"").replace(/\b(aujourd hui|demain|apres demain|le\s+\d{1,2}[/.]\d{1,2}(?:[/.]\d{4})?|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|prochain|prochaine)\b/ig,"");
+    title=title.replace(/\b(?:a|vers|pour)\s*\d{1,2}\s*(?:h|heure(?:s)?)?\s*\d{0,2}\b/ig,"").replace(/\b\d{1,2}\s*h(?:\s*\d{1,2})?\b/ig,"").replace(/\b(rdv|rendez vous)\b/i,"rendez-vous").replace(/\s+/g," ").trim();
+    if(!title)title="Rendez-vous";const start=new Date(parsed.date),end=new Date(start.getTime()+60*60*1000);const health=/medecin|docteur|sante|dentiste|hopital/.test(n);const payload={title:title.slice(0,160),start_at:start.toISOString(),end_at:end.toISOString(),description:"Ajouté depuis NOVA.",location:"",category:health?"health":"personal",color:health?"#f17fae":"#9b8cff",all_day:false,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Paris"};
+    const data=await request("/api/agenda/events",{method:"POST",body:JSON.stringify(payload)});const when=new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"}).format(start);return `C’est fait ! J’ai ajouté **${data.event?.title||payload.title}** à ton agenda pour **${when}**. Durée prévue : 1 heure.`;
   }
-  const parsed=agendaLocalDate(text);
-  const start=parsed?.date||new Date();
-  start.setHours(0,0,0,0);
-  const end=new Date(start);end.setDate(end.getDate()+1);
-  const data=await request("/api/agenda/events?start="+encodeURIComponent(start.toISOString())+"&end="+encodeURIComponent(end.toISOString()));
-  const events=Array.isArray(data.events)?data.events:[];
-  if(!events.length)return "Je n’ai aucun événement enregistré pour cette journée. Tu peux me dire quoi ajouter, par exemple : « Ajoute rendez-vous médecin demain à 18 h ».";
-  const lines=events.map(e=>{const d=new Date(e.start_at);return `- **${d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}** — ${e.title}${e.location?" · "+e.location:""}`});
+  const parsed=agendaLocalDate(text),dayStart=parsed?.date||new Date();dayStart.setHours(0,0,0,0);const dayEnd=new Date(dayStart);dayEnd.setDate(dayEnd.getDate()+1);
+  const data=await request("/api/agenda/events?start="+encodeURIComponent(dayStart.toISOString())+"&end="+encodeURIComponent(dayEnd.toISOString()));let events=Array.isArray(data.events)?data.events:[];const range=agendaTimeRange(text);if(range)events=events.filter(e=>{const d=new Date(e.start_at);const h=d.getHours()+d.getMinutes()/60;return h>=range.start&&h<range.end});
+  if(!events.length)return range?`Je n’ai trouvé aucun événement entre ${range.start} h et ${range.end} h le ${dayStart.toLocaleDateString("fr-FR")}. Si tu pensais à une autre date, précise-la et je vérifierai.`:"Je n’ai aucun événement enregistré pour cette journée. Tu peux me demander de créer directement un rendez-vous, par exemple : « Ajoute rendez-vous médecin demain à 18 h ».";
+  events.sort((a,b)=>new Date(a.start_at)-new Date(b.start_at));const rows=events.map(e=>{const d=new Date(e.start_at),end=new Date(e.end_at);return `| ${d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}–${end.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})} | ${String(e.title||"Rendez-vous").replace(/\|/g,"/")} | ${String(e.location||e.description||"—").replace(/\|/g,"/")} |`});
   const agendaContext=events.map(e=>({title:e.title,start_at:e.start_at,end_at:e.end_at,description:e.description||"",location:e.location||"",category:e.category||"personal"}));
-  try{
-    const ai=await apiFetch("/api/chat",{method:"POST",body:JSON.stringify({
-      text:"Tu es l'assistant d'organisation de NOVA. Réponds en français, avec un plan réaliste et clair. Demande de l'utilisateur : "+text+
-        "\nDate concernée : "+start.toLocaleDateString("fr-FR")+
-        "\nÉvénements réellement présents dans son agenda (source de vérité) : "+JSON.stringify(agendaContext)+
-        "\nIndique les événements par heure, propose un ordre de priorités et des créneaux libres sans inventer d'événements. Si les données sont insuffisantes, précise-le.",
-      fast:false,device:"nova-agenda-web",tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Paris",
-      memory_context:currentContext(),history:[]
-    })});
-    if(typeof ai.reply==="string"&&ai.reply.trim())return ai.reply;
-  }catch(err){console.warn("NOVA Agenda : réponse IA indisponible, affichage du planning brut.",err)}
-  return "Voici ton programme pour cette journée :\\n\\n"+lines.join("\\n")+"\\n\\nJe peux aussi t’aider à organiser les priorités et les temps libres.";
+  try{const ai=await apiFetch("/api/chat",{method:"POST",body:JSON.stringify({text:"Tu es NOVA, assistant personnel d'organisation. Réponds en français. L'utilisateur demande : "+text+"\nDate concernée : "+dayStart.toLocaleDateString("fr-FR")+(range?`\nFiltre horaire : ${range.start} h à ${range.end} h`:"")+"\nÉvénements réels dans l'agenda (source de vérité) : "+JSON.stringify(agendaContext)+"\nPrésente d'abord les rendez-vous dans un tableau Markdown avec colonnes Heure, Événement, Détails. Ensuite propose une organisation simple de la journée et les créneaux libres, sans inventer d'événements ni dire à l'utilisateur de le faire lui-même. Si un créneau est inconnu, indique-le.",fast:false,device:"nova-agenda-web",tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Paris",memory_context:currentContext(),history:[]})});if(typeof ai.reply==="string"&&ai.reply.trim())return ai.reply}catch(err){console.warn("NOVA Agenda : réponse IA indisponible, affichage du planning brut.",err)}
+  return `Voici ton planning du ${dayStart.toLocaleDateString("fr-FR")} :\n\n| Heure | Événement | Détails |\n|---|---|---|\n${rows.join("\n")}\n\nJe peux aussi t’aider à classer les priorités et à organiser les créneaux libres.`;
 }
-
 async function sendMessage(text){text=String(text||"").trim();if(!text||busy)return;busy=true;stopSpeaking();$("#send").disabled=true;$("#mic").disabled=true;$("#send").querySelector("span").textContent="Envoi…";const sendHistory=[...history,{role:"user",content:text}].slice(-24);history=sendHistory;addMessage("user",text,{noActions:true});safeWrite(STORE.history,history);$("#prompt").value="";const typing=document.createElement("div");typing.className="message assistant";typing.innerHTML='<span class="typing">NOVA réfléchit <span></span><span></span><span></span></span>';$ ("#messages").append(typing);$("#messages").scrollTop=$("#messages").scrollHeight;try{const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),80000);let result;try{const agendaReply=await handleAgendaIntent(text);if(agendaReply!==null){typing.remove();addMessage("assistant",agendaReply);history.push({role:"assistant",content:agendaReply});history=history.slice(-24);safeWrite(STORE.history,history);if($("#voice").checked||prefs.voice)speak(agendaReply);return;}result=await apiFetch("/api/chat",{method:"POST",signal:controller.signal,body:JSON.stringify({text,fast:!!$("#fast").checked,device:/iPhone|iPad|iPod/i.test(navigator.userAgent)?"iphone-web":"web",tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Paris",memory_context:currentContext(),history:history.slice(-24)})})}finally{clearTimeout(timer)}typing.remove();const reply=typeof result.reply==="string"?result.reply:"Je n’ai pas reçu de réponse exploitable.";addMessage("assistant",reply);history.push({role:"assistant",content:reply});history=history.slice(-24);safeWrite(STORE.history,history);processMemoryUpdates(result);if($("#voice").checked||prefs.voice)speak(reply);showServerStatus(true,"Serveur opérationnel",$("#modelInfo").textContent)}catch(e){typing.remove();const message=e.name==="AbortError"?"La réponse prend trop de temps. Réessaie dans un instant.":e.message||"Erreur réseau.";addMessage("assistant",message,{error:true,noActions:true});console.error("Erreur NOVA",e);if(/Failed to fetch|NetworkError|serveur/i.test(message))showServerStatus(false,"Connexion à vérifier",message)}finally{busy=false;$("#send").disabled=false;$("#mic").disabled=false;$("#send").querySelector("span").textContent="Envoyer";$("#prompt").focus()}}
 $("#chatForm").addEventListener("submit",e=>{e.preventDefault();sendMessage($("#prompt").value)});
 $("#prompt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();$("#chatForm").requestSubmit()}});
