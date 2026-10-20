@@ -262,7 +262,18 @@ $("#navSettings").onclick=()=>$("#settingsDialog").showModal();$("#settingsTop")
 $("#openIntegrationsFromSettings").onclick=()=>{$("#settingsDialog").close();$("#integrationDialog").showModal()};
 $("#settingsAccountButton").onclick=()=>{$("#settingsDialog").close();openAuth("login")};
 $("#settingsExportICS").onclick=exportICS;
-initThemeSystem();syncNovaGradient();window.addEventListener("storage",e=>{if(e.key==="novaGradientStudioV1")syncNovaGradient()});
+initThemeSystem();syncNovaGradient();window.addEventListener("storage",e=>{
+  if(e.key==="novaGradientStudioV1")syncNovaGradient();
+  if(e.key==="novaAgendaCloudCacheV1"){
+    if(state.remote){
+      loadRemoteEvents().catch(err=>console.warn("Actualisation de l'agenda impossible",err));
+    }else{
+      state.events=localRead(STORE.events,[]);
+      renderAll();
+      notify("Agenda actualisé depuis NOVA.");
+    }
+  }
+});
 $$("[data-close]").forEach(b=>b.addEventListener("click",()=>$("#"+b.dataset.close).close()));
 $("#accountButton").onclick=()=>openAuth("login");$("#sideAccount").onclick=()=>openAuth("login");$("#mobileAccount").onclick=()=>openAuth("login");$("#syncAction").onclick=()=>openAuth("login");$$('[data-auth-tab]').forEach(b=>b.onclick=()=>setAuthTab(b.dataset.authTab));$("#authForm").addEventListener("submit",authSubmit);$("#logoutButton").onclick=logout;
 $("#aiForm").addEventListener("submit",e=>{e.preventDefault();const v=$("#aiPrompt").value.trim();if(!v)return;$("#aiPrompt").value="";askAI("custom",v)});$$('[data-ai]').forEach(b=>b.addEventListener("click",()=>askAI(b.dataset.ai)));
