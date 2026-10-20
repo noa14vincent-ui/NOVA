@@ -94,7 +94,7 @@ def install_image_routes(app, get_client=None, check_access=None):
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(TIMEOUT_SECONDS, connect=10.0)) as client:
                 response = await client.post(endpoint, headers=headers, json=body)
-                 try:
+            try:
                 data = response.json()
             except Exception:
                 data = {}
