@@ -15,8 +15,10 @@ from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
-
-MODEL = os.getenv("NOVA_IMAGE_MODEL", "recraft/recraftv4-1-flash")
+MODEL = os.getenv(
+    "NOVA_IMAGE_MODEL",
+    "@cf/black-forest-labs/flux-1-schnell"
+)
 CLOUDFLARE_API_URL = (
     "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run"
 )
